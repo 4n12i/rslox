@@ -4,6 +4,17 @@ use anyhow::Result;
 use std::fs::File;
 use std::io::Write;
 use std::io::{self, BufRead, Read};
+use thiserror::Error;
+
+#[derive(Error, Debug)]
+enum LoxError {
+    #[error("[line {line}] Error{place:?}: {message:?}")]
+    _SyntaxError {
+        line: usize,
+        place: String,
+        message: String,
+    },
+}
 
 pub fn main(args: &[String]) -> Result<()> {
     match args.len() {
