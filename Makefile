@@ -1,6 +1,10 @@
 build: 
 	make check
 	cargo build
+	
+test: 
+	make check
+	cargo test
 
 commit: 
 	make check
