@@ -1,6 +1,9 @@
+use crate::lox::ErrorType;
 use crate::token::Token;
 use crate::token_type::TokenType;
-use anyhow::{bail, Result};
+use anyhow::bail;
+use anyhow::Result;
+use tracing::error;
 
 #[allow(dead_code)]
 #[derive(Debug)]
@@ -50,7 +53,10 @@ impl Scanner {
             '+' => self.add_token_with_one_symbol(TokenType::Plus),
             ';' => self.add_token_with_one_symbol(TokenType::Semicolon),
             '*' => self.add_token_with_one_symbol(TokenType::Star),
-            _ => bail!("Failed to scan a token"),
+            _ => {
+                error!("{}", ErrorType::Lexical { line: self.line });
+                Ok(())
+            }
         }
     }
 
