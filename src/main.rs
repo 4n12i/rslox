@@ -2,6 +2,7 @@ use anyhow::Result;
 use std::env;
 
 mod lox;
+mod scanner;
 mod token;
 mod token_type;
 
