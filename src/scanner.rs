@@ -53,11 +53,61 @@ impl Scanner {
             '+' => self.add_token_with_one_symbol(TokenType::Plus),
             ';' => self.add_token_with_one_symbol(TokenType::Semicolon),
             '*' => self.add_token_with_one_symbol(TokenType::Star),
+            '!' => match self.is_match('=') {
+                true => self.add_token_with_one_symbol(TokenType::BangEqual),
+                false => self.add_token_with_one_symbol(TokenType::Bang),
+            },
+            '=' => match self.is_match('=') {
+                true => self.add_token_with_one_symbol(TokenType::EqualEqual),
+                false => self.add_token_with_one_symbol(TokenType::Equal),
+            },
+            '<' => match self.is_match('=') {
+                true => self.add_token_with_one_symbol(TokenType::LessEqual),
+                false => self.add_token_with_one_symbol(TokenType::Less),
+            },
+            '>' => match self.is_match('=') {
+                true => self.add_token_with_one_symbol(TokenType::GreaterEqual),
+                false => self.add_token_with_one_symbol(TokenType::Greater),
+            },
+            '/' => {
+                match self.is_match('/') {
+                    // If a comment exists
+                    true => {
+                        while self.peek_one_char()? != '\n' && !self.is_at_end() {
+                            self.advance_one_char()?;
+                        }
+                        Ok(())
+                    }
+                    false => self.add_token_with_one_symbol(TokenType::Slash),
+                }
+            }
+            ' ' | '\r' | '\t' => Ok(()), // Ignore whitespace
+            '\n' => {
+                self.line += 1;
+                Ok(())
+            }
             _ => {
                 error!("{}", ErrorType::Lexical { line: self.line });
                 Ok(())
             }
         }
+    }
+
+    fn is_match(&mut self, expected: char) -> bool {
+        if self.is_at_end() {
+            return false;
+        }
+        let c = match self.source.chars().nth(self.current) {
+            Some(c) => c,
+            // TODO
+            None => return false,
+        };
+        if c != expected {
+            return false;
+        }
+        self.current += 1;
+
+        true
     }
 
     fn is_at_end(&mut self) -> bool {
@@ -66,6 +116,17 @@ impl Scanner {
 
     fn advance_one_char(&mut self) -> Result<char> {
         self.current += 1;
+        match self.source.chars().nth(self.current) {
+            Some(c) => Ok(c),
+            None => bail!("Failed to get a next character"),
+        }
+    }
+
+    fn peek_one_char(&mut self) -> Result<char> {
+        if self.is_at_end() {
+            return Ok('\0');
+        }
+
         match self.source.chars().nth(self.current) {
             Some(c) => Ok(c),
             None => bail!("Failed to get a next character"),

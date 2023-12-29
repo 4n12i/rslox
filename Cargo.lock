@@ -83,7 +83,6 @@ name = "rslox"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "once_cell",
  "strum",
  "strum_macros",
  "thiserror",
