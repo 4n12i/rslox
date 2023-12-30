@@ -32,10 +32,8 @@ pub fn run_file(path: &str) -> Result<()> {
     f.read_to_string(&mut buf)
         .context("Failed to read {path}")?;
 
-    run(&buf)
-
     // TODO: If it had an error, exit.
-    // TODO: If it had an runtime error, exit.
+    run(&buf)
 }
 
 pub fn run_prompt() -> Result<()> {
@@ -47,6 +45,7 @@ pub fn run_prompt() -> Result<()> {
         print!("> ");
         io::stdout().flush()?;
         if let Ok(0) = handle.read_line(&mut buffer) {
+            println!();
             break;
         }
         run(&buffer)?;
@@ -67,6 +66,7 @@ fn run(source: &str) -> Result<()> {
         info!("{}", t.get_string()?);
     }
 
+    // TODO: Stop if there was a syntax/resolution error.
     // TODO: Add a parser, resolver and interpreter.
 
     Ok(())

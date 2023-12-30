@@ -98,7 +98,6 @@ impl Scanner {
                 true => self.add_token_with_one_symbol(TokenType::GreaterEqual)?,
                 false => self.add_token_with_one_symbol(TokenType::Greater)?,
             },
-            // Slash
             '/' => match self.is_match('/') {
                 // A comment goes until the end of the line.
                 true => {
@@ -109,13 +108,11 @@ impl Scanner {
                 }
                 false => self.add_token_with_one_symbol(TokenType::Slash)?,
             },
-            // Whitespace
             ' ' | '\r' | '\t' => return Ok(None), // Ignore whitespace.
             '\n' => {
                 self.line += 1;
                 return Ok(None);
             }
-            // String
             '"' => match self.get_string_literal()? {
                 Some(s) => self.add_token(TokenType::String, Literal::Str(s))?,
                 None => return Ok(None),
