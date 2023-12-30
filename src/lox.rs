@@ -8,6 +8,7 @@ use std::io::Write;
 use std::io::{self};
 use thiserror::Error;
 use tracing::error;
+use tracing::info;
 
 #[derive(Error, Debug)]
 pub enum ErrorType {
@@ -59,13 +60,12 @@ pub fn run_prompt() -> Result<()> {
 
 fn run(source: &str) -> Result<()> {
     let mut scanner = Scanner::new(source);
-    let _tokens = scanner.scan_tokens()?;
+    let mut tokens = scanner.scan_tokens()?;
 
     // For now, just print the tokens.
-    // let token: Vec<&str> = source.split_whitespace().collect();
-    // for t in token {
-    //     println!("{t}");
-    // }
+    for t in &mut tokens {
+        info!("{}", t.get_string()?);
+    }
 
     // TODO: Add a parser, resolver and interpreter.
 

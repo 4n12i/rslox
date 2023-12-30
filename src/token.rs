@@ -38,7 +38,7 @@ impl Token {
         }
     }
 
-    fn _get_string(&mut self) -> Result<String> {
+    pub fn get_string(&mut self) -> Result<String> {
         Ok(format!(
             "{:?} {} {}",
             self.token_type, self.lexeme, self.literal
@@ -57,6 +57,6 @@ mod tests {
             Literal::Str("test".to_string()),
             1,
         );
-        assert_eq!(format!("String test test"), token._get_string().unwrap());
+        assert_eq!(format!("String test test"), token.get_string().unwrap());
     }
 }
