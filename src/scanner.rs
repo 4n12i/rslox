@@ -56,6 +56,7 @@ impl Scanner {
             '+' => self.add_token_with_one_symbol(TokenType::Plus)?,
             ';' => self.add_token_with_one_symbol(TokenType::Semicolon)?,
             '*' => self.add_token_with_one_symbol(TokenType::Star)?,
+            // Two characters token
             '!' => match self.is_match('=') {
                 true => self.add_token_with_one_symbol(TokenType::BangEqual)?,
                 false => self.add_token_with_one_symbol(TokenType::Bang)?,
@@ -72,19 +73,21 @@ impl Scanner {
                 true => self.add_token_with_one_symbol(TokenType::GreaterEqual)?,
                 false => self.add_token_with_one_symbol(TokenType::Greater)?,
             },
+            // Slash
             '/' => match self.is_match('/') {
                 // A comment goes until the end of the line.
                 true => {
-                    while self.peek_one_char()? != '\n' && !self.is_at_end() {
+                    while self.peek_one_char()? != '\n' && !is_at_end(self.current, &self.source) {
                         self.advance_one_char()?;
                     }
                     return Ok(None);
                 }
                 false => self.add_token_with_one_symbol(TokenType::Slash)?,
             },
+            // Whitespace
             ' ' | '\r' | '\t' => {
                 return Ok(None);
-            } // Ignore whitespace
+            } // Ignore whitespace.
             '\n' => {
                 self.line += 1;
                 return Ok(None);
@@ -99,13 +102,9 @@ impl Scanner {
     }
 
     fn is_match(&mut self, expected: char) -> bool {
-        if self.is_at_end() {
+        if is_at_end(self.current, &self.source) {
             return false;
         }
-        // let c = match self.source.chars().nth(self.current) {
-        //     Some(c) => c,
-        //     None => return false,
-        // };
         let c = self.chars[self.current];
         if c != expected {
             return false;
@@ -113,10 +112,6 @@ impl Scanner {
         self.current += 1;
 
         true
-    }
-
-    fn is_at_end(&mut self) -> bool {
-        self.current >= self.source.len()
     }
 
     fn advance_one_char(&mut self) -> Result<char> {
@@ -127,7 +122,7 @@ impl Scanner {
     }
 
     fn peek_one_char(&mut self) -> Result<char> {
-        if self.is_at_end() {
+        if is_at_end(self.current, &self.source) {
             return Ok('\0');
         }
         let c = self.chars[self.current];
