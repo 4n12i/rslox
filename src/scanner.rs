@@ -1,10 +1,34 @@
+use std::collections::HashMap;
+
 use crate::lox::ErrorType;
 use crate::token::Literal;
 use crate::token::Token;
 use crate::token_type::TokenType;
 use anyhow::bail;
 use anyhow::Result;
+use once_cell::sync::Lazy;
 use tracing::error;
+
+static KEYWORDS: Lazy<HashMap<&'static str, TokenType>> = Lazy::new(|| {
+    HashMap::from([
+        ("and", TokenType::And),
+        ("class", TokenType::Class),
+        ("else", TokenType::Else),
+        ("false", TokenType::False),
+        ("fun", TokenType::Fun),
+        ("for", TokenType::For),
+        ("if", TokenType::If),
+        ("nil", TokenType::Nil),
+        ("or", TokenType::Or),
+        ("print", TokenType::Print),
+        ("return", TokenType::Return),
+        ("super", TokenType::Super),
+        ("this", TokenType::This),
+        ("true", TokenType::True),
+        ("var", TokenType::Var),
+        ("while", TokenType::While),
+    ])
+});
 
 #[derive(Debug)]
 pub struct Scanner {
@@ -96,19 +120,33 @@ impl Scanner {
                 Some(s) => self.add_token(TokenType::String, Literal::Str(s))?,
                 None => return Ok(None),
             },
-            _ => match c.is_ascii_digit() {
-                true => {
+            _ => {
+                if c.is_ascii_digit() {
                     let n = self.find_number_literal()?;
                     self.add_token(TokenType::Number, Literal::Num(n))?
-                }
-                false => {
+                } else if is_alpha(c) {
+                    let t = self.find_identifier()?;
+                    self.add_token_with_one_symbol(t)?
+                } else {
                     error!("{}", ErrorType::Lexical { line: self.line });
                     return Ok(None);
                 }
-            },
+            }
         };
 
         Ok(Some(token))
+    }
+
+    fn find_identifier(&mut self) -> Result<TokenType> {
+        while is_alpha_numeric(self.peek_one_ahead()?) {
+            self.advance_one_char()?;
+        }
+
+        let text = self.source[self.start..self.current].to_string();
+        match KEYWORDS.get(&text as &str) {
+            Some(t) => Ok(t.clone()),
+            None => Ok(TokenType::Identifier),
+        }
     }
 
     fn find_number_literal(&mut self) -> Result<f64> {
@@ -198,6 +236,14 @@ impl Scanner {
             None => bail!("Failed to get source code"),
         }
     }
+}
+
+fn is_alpha(c: char) -> bool {
+    c.is_ascii_alphabetic() || c == '_'
+}
+
+fn is_alpha_numeric(c: char) -> bool {
+    c.is_ascii_alphanumeric() || c == '_'
 }
 
 fn is_at_end(current: usize, source: &str) -> bool {

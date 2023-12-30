@@ -1,7 +1,7 @@
 use strum_macros::Display;
 
 #[allow(dead_code)]
-#[derive(Display, Debug, PartialEq)]
+#[derive(Display, Debug, PartialEq, Clone)]
 pub enum TokenType {
     // Token with 1 symbol
     LeftParen,
