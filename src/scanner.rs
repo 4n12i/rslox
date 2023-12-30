@@ -54,7 +54,7 @@ impl Scanner {
     pub fn scan_tokens(&mut self) -> Result<Vec<Token>> {
         let mut tokens = Vec::new();
 
-        while is_at_end(self.current, &self.source) {
+        while !self.is_at_end() {
             // At the beginning of the next lexeme.
             self.start = self.current;
             if let Some(t) = self.scan_token()? {
@@ -102,7 +102,7 @@ impl Scanner {
             '/' => match self.is_match('/') {
                 // A comment goes until the end of the line.
                 true => {
-                    while self.peek_one_ahead()? != '\n' && !is_at_end(self.current, &self.source) {
+                    while self.peek_one_ahead()? != '\n' && !self.is_at_end() {
                         self.advance_one_char()?;
                     }
                     return Ok(None);
@@ -116,16 +116,16 @@ impl Scanner {
                 return Ok(None);
             }
             // String
-            '"' => match self.find_string_literal()? {
+            '"' => match self.get_string_literal()? {
                 Some(s) => self.add_token(TokenType::String, Literal::Str(s))?,
                 None => return Ok(None),
             },
             _ => {
                 if c.is_ascii_digit() {
-                    let n = self.find_number_literal()?;
+                    let n = self.get_number_literal()?;
                     self.add_token(TokenType::Number, Literal::Num(n))?
                 } else if is_alpha(c) {
-                    let t = self.find_identifier()?;
+                    let t = self.get_identifier()?;
                     self.add_token_with_one_symbol(t)?
                 } else {
                     error!("{}", ErrorType::Lexical { line: self.line });
@@ -137,7 +137,7 @@ impl Scanner {
         Ok(Some(token))
     }
 
-    fn find_identifier(&mut self) -> Result<TokenType> {
+    fn get_identifier(&mut self) -> Result<TokenType> {
         while is_alpha_numeric(self.peek_one_ahead()?) {
             self.advance_one_char()?;
         }
@@ -149,7 +149,7 @@ impl Scanner {
         }
     }
 
-    fn find_number_literal(&mut self) -> Result<f64> {
+    fn get_number_literal(&mut self) -> Result<f64> {
         while self.peek_one_ahead()?.is_ascii_digit() {
             self.advance_one_char()?;
         }
@@ -165,15 +165,15 @@ impl Scanner {
         Ok(value)
     }
 
-    fn find_string_literal(&mut self) -> Result<Option<String>> {
-        while self.peek_one_ahead()? != '"' && !is_at_end(self.current, &self.source) {
+    fn get_string_literal(&mut self) -> Result<Option<String>> {
+        while self.peek_one_ahead()? != '"' && !self.is_at_end() {
             if self.peek_one_ahead()? == '\n' {
                 self.line += 1;
             }
             self.advance_one_char()?;
         }
 
-        if is_at_end(self.current, &self.source) {
+        if self.is_at_end() {
             error!("{}", ErrorType::StringEnd { line: self.line });
             return Ok(None);
         }
@@ -189,41 +189,38 @@ impl Scanner {
     }
 
     fn is_match(&mut self, expected: char) -> bool {
-        if is_at_end(self.current, &self.source) {
+        if self.is_at_end() {
             return false;
         }
-        let c = self.chars[self.current];
-        if c != expected {
+        if self.chars[self.current] != expected {
             return false;
         }
         self.current += 1;
-
         true
+    }
+
+    fn is_at_end(&mut self) -> bool {
+        self.current >= self.source.len()
     }
 
     fn advance_one_char(&mut self) -> Result<char> {
         let c = self.chars[self.current];
         self.current += 1;
-
         Ok(c)
     }
 
     fn peek_one_ahead(&mut self) -> Result<char> {
-        if is_at_end(self.current, &self.source) {
+        if self.is_at_end() {
             return Ok('\0');
         }
-
-        let c = self.chars[self.current];
-        Ok(c)
+        Ok(self.chars[self.current])
     }
 
     fn peek_two_ahead(&mut self) -> Result<char> {
-        if is_at_end(self.current + 1, &self.source) {
+        if self.is_at_end() {
             return Ok('\0');
         }
-
-        let c = self.chars[self.current + 1];
-        Ok(c)
+        Ok(self.chars[self.current + 1])
     }
 
     fn add_token_with_one_symbol(&mut self, token_type: TokenType) -> Result<Token> {
@@ -246,24 +243,52 @@ fn is_alpha_numeric(c: char) -> bool {
     c.is_ascii_alphanumeric() || c == '_'
 }
 
-fn is_at_end(current: usize, source: &str) -> bool {
-    current >= source.len()
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    const SRC_PLUS: &str = r"+";
-    const SRC_BANG_EQUAL: &str = r"!=";
-    const SRC_WHITESPACE: &str = r" ";
-    const SRC_COMMENT: &str = r"// comment\n";
-    const SRC_STASH: &str = r"/";
-    const SRC_STRING: &str = r#""string""#;
-    const SRC_STRING_WITH_NEWLINE: &str = r#""string\nstring""#;
-    const SRC_DECIMAL: &str = r"2.024";
-    const SRC_OR: &str = r"or";
-    const SRC_IDENTIFIER: &str = r"tmp";
+    const SRC_PLUS: &str = "+";
+    const SRC_BANG_EQUAL: &str = "!=";
+    const SRC_WHITESPACE: &str = " ";
+    const SRC_COMMENT: &str = "// comment\n";
+    const SRC_STASH: &str = "/";
+    const SRC_STRING: &str = "\"string\"";
+    const SRC_STRING_WITH_NEWLINE: &str = "\"string\nstring\"";
+    const SRC_DECIMAL: &str = "2.024";
+    const SRC_OR: &str = "or";
+    const SRC_IDENTIFIER: &str = "tmp";
+
+    const SRC_ADDITION: &str = "1 + 2";
+    const SRC_IF_AND_COMMENT: &str = "if (n1 + n2) <= 3 { // comment\n }";
+
+    #[test]
+    fn scan_tokens() {
+        assert_eq!(
+            Scanner::new(SRC_ADDITION).scan_tokens().unwrap(),
+            vec![
+                Token::new(TokenType::Number, "1", Literal::Num(1f64), 1),
+                Token::new(TokenType::Plus, "+", Literal::None, 1),
+                Token::new(TokenType::Number, "2", Literal::Num(2f64), 1),
+                Token::new(TokenType::Eof, "", Literal::None, 1)
+            ]
+        );
+        assert_eq!(
+            Scanner::new(SRC_IF_AND_COMMENT).scan_tokens().unwrap(),
+            vec![
+                Token::new(TokenType::If, "if", Literal::None, 1),
+                Token::new(TokenType::LeftParen, "(", Literal::None, 1),
+                Token::new(TokenType::Identifier, "n1", Literal::None, 1),
+                Token::new(TokenType::Plus, "+", Literal::None, 1),
+                Token::new(TokenType::Identifier, "n2", Literal::None, 1),
+                Token::new(TokenType::RightParen, ")", Literal::None, 1),
+                Token::new(TokenType::LessEqual, "<=", Literal::None, 1),
+                Token::new(TokenType::Number, "3", Literal::Num(3f64), 1),
+                Token::new(TokenType::LeftBrace, "{", Literal::None, 1),
+                Token::new(TokenType::RightBrace, "}", Literal::None, 2),
+                Token::new(TokenType::Eof, "", Literal::None, 2)
+            ]
+        );
+    }
 
     #[test]
     fn scan_token() {
@@ -291,7 +316,7 @@ mod tests {
             Some(Token::new(
                 TokenType::String,
                 SRC_STRING,
-                Literal::Str(r"string".to_string()),
+                Literal::Str("string".to_string()),
                 1
             ))
         );
@@ -300,8 +325,8 @@ mod tests {
             Some(Token::new(
                 TokenType::String,
                 SRC_STRING_WITH_NEWLINE,
-                Literal::Str(r"string\nstring".to_string()),
-                1
+                Literal::Str("string\nstring".to_string()),
+                2
             ))
         );
 
@@ -327,12 +352,5 @@ mod tests {
                 1
             ))
         );
-    }
-
-    #[test]
-    fn check_is_at_end() {
-        assert!(!is_at_end(1, "1 + 2"));
-        assert!(is_at_end(5, "1 + 2"));
-        assert!(is_at_end(10, "1 + 2"));
     }
 }
