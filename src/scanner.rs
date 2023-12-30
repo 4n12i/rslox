@@ -1,4 +1,5 @@
 use crate::lox::ErrorType;
+use crate::token::Literal;
 use crate::token::Token;
 use crate::token_type::TokenType;
 use anyhow::bail;
@@ -37,7 +38,7 @@ impl Scanner {
             }
         }
 
-        tokens.push(Token::new(TokenType::Eof, "", "null", self.line));
+        tokens.push(Token::new(TokenType::Eof, "", Literal::None, self.line));
 
         Ok(tokens)
     }
@@ -92,16 +93,38 @@ impl Scanner {
             }
             // String
             '"' => match self.find_string_literal()? {
-                Some(s) => self.add_token(TokenType::String, &s)?,
+                Some(s) => self.add_token(TokenType::String, Literal::Str(s))?,
                 None => return Ok(None),
             },
-            _ => {
-                error!("{}", ErrorType::Lexical { line: self.line });
-                return Ok(None);
-            }
+            _ => match c.is_ascii_digit() {
+                true => {
+                    let n = self.find_number_literal()?;
+                    self.add_token(TokenType::Number, Literal::Num(n))?
+                }
+                false => {
+                    error!("{}", ErrorType::Lexical { line: self.line });
+                    return Ok(None);
+                }
+            },
         };
 
         Ok(Some(token))
+    }
+
+    fn find_number_literal(&mut self) -> Result<f64> {
+        while self.peek_one_char()?.is_ascii_digit() {
+            self.advance_one_char()?;
+        }
+
+        if self.peek_one_char()? == '.' && self.peek_two_ahead()?.is_ascii_digit() {
+            self.advance_one_char()?;
+            while self.peek_one_char()?.is_ascii_digit() {
+                self.advance_one_char()?;
+            }
+        }
+
+        let value = self.source[self.start..self.current].parse::<f64>()?;
+        Ok(value)
     }
 
     fn find_string_literal(&mut self) -> Result<Option<String>> {
@@ -121,8 +144,9 @@ impl Scanner {
         self.advance_one_char()?;
 
         // Trim the surrounding quotes.
-        let value = self.source.trim_matches('"').to_string();
-
+        let value = self.source[self.start..self.current]
+            .trim_matches('"')
+            .to_string();
         Ok(Some(value))
     }
 
@@ -150,16 +174,25 @@ impl Scanner {
         if is_at_end(self.current, &self.source) {
             return Ok('\0');
         }
-        let c = self.chars[self.current];
 
+        let c = self.chars[self.current];
+        Ok(c)
+    }
+
+    fn peek_two_ahead(&mut self) -> Result<char> {
+        if is_at_end(self.current + 1, &self.source) {
+            return Ok('\0');
+        }
+
+        let c = self.chars[self.current + 1];
         Ok(c)
     }
 
     fn add_token_with_one_symbol(&mut self, token_type: TokenType) -> Result<Token> {
-        self.add_token(token_type, "null")
+        self.add_token(token_type, Literal::None)
     }
 
-    fn add_token(&mut self, token_type: TokenType, literal: &str) -> Result<Token> {
+    fn add_token(&mut self, token_type: TokenType, literal: Literal) -> Result<Token> {
         match self.source.get(self.start..self.current) {
             Some(t) => Ok(Token::new(token_type, t, literal, self.line)),
             None => bail!("Failed to get source code"),
@@ -185,17 +218,17 @@ mod tests {
     fn scan_token() {
         assert_eq!(
             Scanner::new(SRC_PLUS).scan_token().unwrap(),
-            Some(Token::new(TokenType::Plus, "+", "null", 1))
+            Some(Token::new(TokenType::Plus, "+", Literal::None, 1))
         );
         assert_eq!(
             Scanner::new(SRC_BANG_EQUAL).scan_token().unwrap(),
-            Some(Token::new(TokenType::BangEqual, "!=", "null", 1))
+            Some(Token::new(TokenType::BangEqual, "!=", Literal::None, 1))
         );
         assert_eq!(Scanner::new(SRC_WHITESPACE).scan_token().unwrap(), None);
         assert_eq!(Scanner::new(SRC_COMMENT).scan_token().unwrap(), None);
         assert_eq!(
             Scanner::new(SRC_STASH).scan_token().unwrap(),
-            Some(Token::new(TokenType::Slash, "/", "null", 1))
+            Some(Token::new(TokenType::Slash, "/", Literal::None, 1))
         );
     }
 
