@@ -4,6 +4,14 @@ use crate::token_type::TokenType;
 use anyhow::Result;
 
 #[derive(Debug, PartialEq)]
+pub struct Token {
+    token_type: TokenType,
+    lexeme: String,
+    literal: Literal,
+    line: usize,
+}
+
+#[derive(Debug, PartialEq)]
 pub enum Literal {
     Str(String),
     Num(f64),
@@ -18,13 +26,6 @@ impl fmt::Display for Literal {
             Self::None => write!(f, "null"),
         }
     }
-}
-#[derive(Debug, PartialEq)]
-pub struct Token {
-    token_type: TokenType,
-    lexeme: String,
-    literal: Literal,
-    line: usize,
 }
 
 impl Token {

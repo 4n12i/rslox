@@ -78,7 +78,7 @@ impl Scanner {
             '/' => match self.is_match('/') {
                 // A comment goes until the end of the line.
                 true => {
-                    while self.peek_one_char()? != '\n' && !is_at_end(self.current, &self.source) {
+                    while self.peek_one_ahead()? != '\n' && !is_at_end(self.current, &self.source) {
                         self.advance_one_char()?;
                     }
                     return Ok(None);
@@ -112,13 +112,13 @@ impl Scanner {
     }
 
     fn find_number_literal(&mut self) -> Result<f64> {
-        while self.peek_one_char()?.is_ascii_digit() {
+        while self.peek_one_ahead()?.is_ascii_digit() {
             self.advance_one_char()?;
         }
 
-        if self.peek_one_char()? == '.' && self.peek_two_ahead()?.is_ascii_digit() {
+        if self.peek_one_ahead()? == '.' && self.peek_two_ahead()?.is_ascii_digit() {
             self.advance_one_char()?;
-            while self.peek_one_char()?.is_ascii_digit() {
+            while self.peek_one_ahead()?.is_ascii_digit() {
                 self.advance_one_char()?;
             }
         }
@@ -128,8 +128,8 @@ impl Scanner {
     }
 
     fn find_string_literal(&mut self) -> Result<Option<String>> {
-        while self.peek_one_char()? != '"' && !is_at_end(self.current, &self.source) {
-            if self.peek_one_char()? == '\n' {
+        while self.peek_one_ahead()? != '"' && !is_at_end(self.current, &self.source) {
+            if self.peek_one_ahead()? == '\n' {
                 self.line += 1;
             }
             self.advance_one_char()?;
@@ -170,7 +170,7 @@ impl Scanner {
         Ok(c)
     }
 
-    fn peek_one_char(&mut self) -> Result<char> {
+    fn peek_one_ahead(&mut self) -> Result<char> {
         if is_at_end(self.current, &self.source) {
             return Ok('\0');
         }
