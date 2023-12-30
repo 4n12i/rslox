@@ -2,7 +2,7 @@ use crate::token_type::TokenType;
 use anyhow::Result;
 
 #[allow(dead_code)]
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Token {
     token_type: TokenType,
     lexeme: String,
@@ -33,7 +33,7 @@ impl Token {
 mod tests {
     use super::*;
     #[test]
-    fn make_token() {
+    fn generate_token() {
         let mut token = Token::new(TokenType::String, "test", "test", 1);
         assert_eq!(format!("String test test"), token.get_string().unwrap());
     }

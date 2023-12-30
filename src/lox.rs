@@ -1,16 +1,18 @@
+use crate::scanner::Scanner;
 use anyhow::Context;
 use anyhow::Result;
 use std::fs::File;
+use std::io::BufRead;
+use std::io::Read;
 use std::io::Write;
-use std::io::{self, BufRead, Read};
+use std::io::{self};
 use thiserror::Error;
 use tracing::error;
 
-#[allow(dead_code)]
 #[derive(Error, Debug)]
 pub enum ErrorType {
     #[error("[line {line}] Error{place:?}: {message:?}")]
-    Syntax {
+    _Syntax {
         line: usize,
         place: String,
         message: String,
@@ -27,6 +29,9 @@ pub fn run_file(path: &str) -> Result<()> {
         .context("Failed to read {path}")?;
 
     run(&buf)
+
+    // TODO: If it had an error, exit.
+    // TODO: If it had an runtime error, exit.
 }
 
 pub fn run_prompt() -> Result<()> {
@@ -42,16 +47,22 @@ pub fn run_prompt() -> Result<()> {
         }
         run(&buffer)?;
         buffer.clear();
+
+        // TODO: Reset an error flag.
     }
 
     Ok(())
 }
 
 fn run(source: &str) -> Result<()> {
-    let token: Vec<&str> = source.split_whitespace().collect();
-    for t in token {
-        println!("{t}");
-    }
+    let mut scanner = Scanner::new(source);
+    let _tokens = scanner.scan_tokens()?;
+
+    // For now, just print the tokens.
+    // let token: Vec<&str> = source.split_whitespace().collect();
+    // for t in token {
+    //     println!("{t}");
+    // }s
 
     Ok(())
 }

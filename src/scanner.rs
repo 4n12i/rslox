@@ -5,11 +5,10 @@ use anyhow::bail;
 use anyhow::Result;
 use tracing::error;
 
-#[allow(dead_code)]
 #[derive(Debug)]
-struct Scanner {
+pub struct Scanner {
     source: String,
-    tokens: Vec<Token>,
+    chars: Vec<char>,
     start: usize,
     current: usize,
     line: usize,
@@ -17,91 +16,97 @@ struct Scanner {
 
 #[allow(dead_code)]
 impl Scanner {
-    fn new(source: String) -> Self {
+    pub fn new(source: &str) -> Self {
         Scanner {
-            source,
-            tokens: Vec::new(),
+            source: source.to_string(),
+            chars: source.chars().collect(),
             start: 0,
             current: 0,
             line: 1,
         }
     }
 
-    fn scan_tokens(&mut self) -> Result<()> {
-        while self.is_at_end() {
+    pub fn scan_tokens(&mut self) -> Result<Vec<Token>> {
+        let mut tokens = Vec::new();
+
+        while is_at_end(self.current, &self.source) {
+            // At the beginning of the next lexeme.
             self.start = self.current;
-            self.scan_tokens()?;
+            if let Some(t) = self.scan_token()? {
+                tokens.push(t);
+            }
         }
 
-        self.tokens
-            .push(Token::new(TokenType::Eof, "", "null", self.line));
+        tokens.push(Token::new(TokenType::Eof, "", "null", self.line));
 
-        Ok(())
+        Ok(tokens)
     }
 
-    fn scan_token(&mut self) -> Result<()> {
+    fn scan_token(&mut self) -> Result<Option<Token>> {
         let c = self.advance_one_char()?;
 
-        match c {
-            '(' => self.add_token_with_one_symbol(TokenType::LeftParen),
-            ')' => self.add_token_with_one_symbol(TokenType::RightParen),
-            '{' => self.add_token_with_one_symbol(TokenType::LeftBrace),
-            '}' => self.add_token_with_one_symbol(TokenType::RightBrace),
-            ',' => self.add_token_with_one_symbol(TokenType::Comma),
-            '.' => self.add_token_with_one_symbol(TokenType::Dot),
-            '-' => self.add_token_with_one_symbol(TokenType::Minus),
-            '+' => self.add_token_with_one_symbol(TokenType::Plus),
-            ';' => self.add_token_with_one_symbol(TokenType::Semicolon),
-            '*' => self.add_token_with_one_symbol(TokenType::Star),
+        let token = match c {
+            '(' => self.add_token_with_one_symbol(TokenType::LeftParen)?,
+            ')' => self.add_token_with_one_symbol(TokenType::RightParen)?,
+            '{' => self.add_token_with_one_symbol(TokenType::LeftBrace)?,
+            '}' => self.add_token_with_one_symbol(TokenType::RightBrace)?,
+            ',' => self.add_token_with_one_symbol(TokenType::Comma)?,
+            '.' => self.add_token_with_one_symbol(TokenType::Dot)?,
+            '-' => self.add_token_with_one_symbol(TokenType::Minus)?,
+            '+' => self.add_token_with_one_symbol(TokenType::Plus)?,
+            ';' => self.add_token_with_one_symbol(TokenType::Semicolon)?,
+            '*' => self.add_token_with_one_symbol(TokenType::Star)?,
             '!' => match self.is_match('=') {
-                true => self.add_token_with_one_symbol(TokenType::BangEqual),
-                false => self.add_token_with_one_symbol(TokenType::Bang),
+                true => self.add_token_with_one_symbol(TokenType::BangEqual)?,
+                false => self.add_token_with_one_symbol(TokenType::Bang)?,
             },
             '=' => match self.is_match('=') {
-                true => self.add_token_with_one_symbol(TokenType::EqualEqual),
-                false => self.add_token_with_one_symbol(TokenType::Equal),
+                true => self.add_token_with_one_symbol(TokenType::EqualEqual)?,
+                false => self.add_token_with_one_symbol(TokenType::Equal)?,
             },
             '<' => match self.is_match('=') {
-                true => self.add_token_with_one_symbol(TokenType::LessEqual),
-                false => self.add_token_with_one_symbol(TokenType::Less),
+                true => self.add_token_with_one_symbol(TokenType::LessEqual)?,
+                false => self.add_token_with_one_symbol(TokenType::Less)?,
             },
             '>' => match self.is_match('=') {
-                true => self.add_token_with_one_symbol(TokenType::GreaterEqual),
-                false => self.add_token_with_one_symbol(TokenType::Greater),
+                true => self.add_token_with_one_symbol(TokenType::GreaterEqual)?,
+                false => self.add_token_with_one_symbol(TokenType::Greater)?,
             },
-            '/' => {
-                match self.is_match('/') {
-                    // If a comment exists
-                    true => {
-                        while self.peek_one_char()? != '\n' && !self.is_at_end() {
-                            self.advance_one_char()?;
-                        }
-                        Ok(())
+            '/' => match self.is_match('/') {
+                // A comment goes until the end of the line.
+                true => {
+                    while self.peek_one_char()? != '\n' && !self.is_at_end() {
+                        self.advance_one_char()?;
                     }
-                    false => self.add_token_with_one_symbol(TokenType::Slash),
+                    return Ok(None);
                 }
-            }
-            ' ' | '\r' | '\t' => Ok(()), // Ignore whitespace
+                false => self.add_token_with_one_symbol(TokenType::Slash)?,
+            },
+            ' ' | '\r' | '\t' => {
+                return Ok(None);
+            } // Ignore whitespace
             '\n' => {
                 self.line += 1;
-                Ok(())
+                return Ok(None);
             }
             _ => {
                 error!("{}", ErrorType::Lexical { line: self.line });
-                Ok(())
+                return Ok(None);
             }
-        }
+        };
+
+        Ok(Some(token))
     }
 
     fn is_match(&mut self, expected: char) -> bool {
         if self.is_at_end() {
             return false;
         }
-        let c = match self.source.chars().nth(self.current) {
-            Some(c) => c,
-            // TODO
-            None => return false,
-        };
+        // let c = match self.source.chars().nth(self.current) {
+        //     Some(c) => c,
+        //     None => return false,
+        // };
+        let c = self.chars[self.current];
         if c != expected {
             return false;
         }
@@ -115,36 +120,70 @@ impl Scanner {
     }
 
     fn advance_one_char(&mut self) -> Result<char> {
+        let c = self.chars[self.current];
         self.current += 1;
-        match self.source.chars().nth(self.current) {
-            Some(c) => Ok(c),
-            None => bail!("Failed to get a next character"),
-        }
+
+        Ok(c)
     }
 
     fn peek_one_char(&mut self) -> Result<char> {
         if self.is_at_end() {
             return Ok('\0');
         }
+        let c = self.chars[self.current];
 
-        match self.source.chars().nth(self.current) {
-            Some(c) => Ok(c),
-            None => bail!("Failed to get a next character"),
-        }
+        Ok(c)
     }
 
-    fn add_token_with_one_symbol(&mut self, token_type: TokenType) -> Result<()> {
+    fn add_token_with_one_symbol(&mut self, token_type: TokenType) -> Result<Token> {
         self.add_token(token_type, "null")
     }
 
-    fn add_token(&mut self, token_type: TokenType, literal: &str) -> Result<()> {
+    fn add_token(&mut self, token_type: TokenType, literal: &str) -> Result<Token> {
         match self.source.get(self.start..self.current) {
-            Some(t) => self
-                .tokens
-                .push(Token::new(token_type, t, literal, self.line)),
+            Some(t) => Ok(Token::new(token_type, t, literal, self.line)),
             None => bail!("Failed to get source code"),
         }
+    }
+}
 
-        Ok(())
+fn is_at_end(current: usize, source: &str) -> bool {
+    current >= source.len()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const SRC_PLUS: &str = r"+";
+    const SRC_BANG_EQUAL: &str = r"!=";
+    const SRC_WHITESPACE: &str = r" ";
+
+    #[test]
+    fn scan_token() {
+        let mut scanner = Scanner::new(SRC_PLUS);
+        let mut token = scanner.scan_token().unwrap();
+        assert_eq!(
+            token,
+            Some(Token::new(TokenType::Plus, "+", "null", scanner.line))
+        );
+
+        scanner = Scanner::new(SRC_BANG_EQUAL);
+        token = scanner.scan_token().unwrap();
+        assert_eq!(
+            token,
+            Some(Token::new(TokenType::BangEqual, "!=", "null", scanner.line))
+        );
+
+        scanner = Scanner::new(SRC_WHITESPACE);
+        token = scanner.scan_token().unwrap();
+        assert_eq!(token, None);
+    }
+
+    #[test]
+    fn check_is_at_end() {
+        assert!(!is_at_end(1, "1 + 2"));
+        assert!(is_at_end(5, "1 + 2"));
+        assert!(is_at_end(10, "1 + 2"));
     }
 }
