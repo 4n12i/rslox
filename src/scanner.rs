@@ -85,13 +85,16 @@ impl Scanner {
                 false => self.add_token_with_one_symbol(TokenType::Slash)?,
             },
             // Whitespace
-            ' ' | '\r' | '\t' => {
-                return Ok(None);
-            } // Ignore whitespace.
+            ' ' | '\r' | '\t' => return Ok(None), // Ignore whitespace.
             '\n' => {
                 self.line += 1;
                 return Ok(None);
             }
+            // String
+            '"' => match self.find_string_literal()? {
+                Some(s) => self.add_token(TokenType::String, &s)?,
+                None => return Ok(None),
+            },
             _ => {
                 error!("{}", ErrorType::Lexical { line: self.line });
                 return Ok(None);
@@ -99,6 +102,28 @@ impl Scanner {
         };
 
         Ok(Some(token))
+    }
+
+    fn find_string_literal(&mut self) -> Result<Option<String>> {
+        while self.peek_one_char()? != '"' && !is_at_end(self.current, &self.source) {
+            if self.peek_one_char()? == '\n' {
+                self.line += 1;
+            }
+            self.advance_one_char()?;
+        }
+
+        if is_at_end(self.current, &self.source) {
+            error!("{}", ErrorType::StringEnd { line: self.line });
+            return Ok(None);
+        }
+
+        // The closing `"`.
+        self.advance_one_char()?;
+
+        // Trim the surrounding quotes.
+        let value = self.source.trim_matches('"').to_string();
+
+        Ok(Some(value))
     }
 
     fn is_match(&mut self, expected: char) -> bool {

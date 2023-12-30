@@ -20,6 +20,9 @@ pub enum ErrorType {
 
     #[error("[line {line}] Unexpected character")]
     Lexical { line: usize },
+
+    #[error("[line {line}] Unterminated string")]
+    StringEnd { line: usize },
 }
 
 pub fn run_file(path: &str) -> Result<()> {
