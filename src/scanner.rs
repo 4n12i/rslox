@@ -259,22 +259,73 @@ mod tests {
     const SRC_WHITESPACE: &str = r" ";
     const SRC_COMMENT: &str = r"// comment\n";
     const SRC_STASH: &str = r"/";
+    const SRC_STRING: &str = r#""string""#;
+    const SRC_STRING_WITH_NEWLINE: &str = r#""string\nstring""#;
+    const SRC_DECIMAL: &str = r"2.024";
+    const SRC_OR: &str = r"or";
+    const SRC_IDENTIFIER: &str = r"tmp";
 
     #[test]
     fn scan_token() {
         assert_eq!(
             Scanner::new(SRC_PLUS).scan_token().unwrap(),
-            Some(Token::new(TokenType::Plus, "+", Literal::None, 1))
+            Some(Token::new(TokenType::Plus, SRC_PLUS, Literal::None, 1))
         );
         assert_eq!(
             Scanner::new(SRC_BANG_EQUAL).scan_token().unwrap(),
-            Some(Token::new(TokenType::BangEqual, "!=", Literal::None, 1))
+            Some(Token::new(
+                TokenType::BangEqual,
+                SRC_BANG_EQUAL,
+                Literal::None,
+                1
+            ))
         );
         assert_eq!(Scanner::new(SRC_WHITESPACE).scan_token().unwrap(), None);
         assert_eq!(Scanner::new(SRC_COMMENT).scan_token().unwrap(), None);
         assert_eq!(
             Scanner::new(SRC_STASH).scan_token().unwrap(),
-            Some(Token::new(TokenType::Slash, "/", Literal::None, 1))
+            Some(Token::new(TokenType::Slash, SRC_STASH, Literal::None, 1))
+        );
+        assert_eq!(
+            Scanner::new(SRC_STRING).scan_token().unwrap(),
+            Some(Token::new(
+                TokenType::String,
+                SRC_STRING,
+                Literal::Str(r"string".to_string()),
+                1
+            ))
+        );
+        assert_eq!(
+            Scanner::new(SRC_STRING_WITH_NEWLINE).scan_token().unwrap(),
+            Some(Token::new(
+                TokenType::String,
+                SRC_STRING_WITH_NEWLINE,
+                Literal::Str(r"string\nstring".to_string()),
+                1
+            ))
+        );
+
+        assert_eq!(
+            Scanner::new(SRC_DECIMAL).scan_token().unwrap(),
+            Some(Token::new(
+                TokenType::Number,
+                SRC_DECIMAL,
+                Literal::Num(SRC_DECIMAL.parse::<f64>().unwrap()),
+                1
+            ))
+        );
+        assert_eq!(
+            Scanner::new(SRC_OR).scan_token().unwrap(),
+            Some(Token::new(TokenType::Or, SRC_OR, Literal::None, 1))
+        );
+        assert_eq!(
+            Scanner::new(SRC_IDENTIFIER).scan_token().unwrap(),
+            Some(Token::new(
+                TokenType::Identifier,
+                SRC_IDENTIFIER,
+                Literal::None,
+                1
+            ))
         );
     }
 
