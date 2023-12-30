@@ -158,26 +158,25 @@ mod tests {
     const SRC_PLUS: &str = r"+";
     const SRC_BANG_EQUAL: &str = r"!=";
     const SRC_WHITESPACE: &str = r" ";
+    const SRC_COMMENT: &str = r"// comment\n";
+    const SRC_STASH: &str = r"/";
 
     #[test]
     fn scan_token() {
-        let mut scanner = Scanner::new(SRC_PLUS);
-        let mut token = scanner.scan_token().unwrap();
         assert_eq!(
-            token,
-            Some(Token::new(TokenType::Plus, "+", "null", scanner.line))
+            Scanner::new(SRC_PLUS).scan_token().unwrap(),
+            Some(Token::new(TokenType::Plus, "+", "null", 1))
         );
-
-        scanner = Scanner::new(SRC_BANG_EQUAL);
-        token = scanner.scan_token().unwrap();
         assert_eq!(
-            token,
-            Some(Token::new(TokenType::BangEqual, "!=", "null", scanner.line))
+            Scanner::new(SRC_BANG_EQUAL).scan_token().unwrap(),
+            Some(Token::new(TokenType::BangEqual, "!=", "null", 1))
         );
-
-        scanner = Scanner::new(SRC_WHITESPACE);
-        token = scanner.scan_token().unwrap();
-        assert_eq!(token, None);
+        assert_eq!(Scanner::new(SRC_WHITESPACE).scan_token().unwrap(), None);
+        assert_eq!(Scanner::new(SRC_COMMENT).scan_token().unwrap(), None);
+        assert_eq!(
+            Scanner::new(SRC_STASH).scan_token().unwrap(),
+            Some(Token::new(TokenType::Slash, "/", "null", 1))
+        );
     }
 
     #[test]

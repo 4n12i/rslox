@@ -62,7 +62,9 @@ fn run(source: &str) -> Result<()> {
     // let token: Vec<&str> = source.split_whitespace().collect();
     // for t in token {
     //     println!("{t}");
-    // }s
+    // }
+
+    // TODO: Add a parser, resolver and interpreter.
 
     Ok(())
 }
