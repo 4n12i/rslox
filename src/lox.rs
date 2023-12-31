@@ -1,9 +1,8 @@
 use crate::scanner::Scanner;
 use anyhow::Context;
 use anyhow::Result;
-use std::fs::File;
+use std::fs;
 use std::io::BufRead;
-use std::io::Read;
 use std::io::Write;
 use std::io::{self};
 use thiserror::Error;
@@ -27,13 +26,10 @@ pub enum ErrorType {
 }
 
 pub fn run_file(path: &str) -> Result<()> {
-    let mut f = File::open(path).context("Failed to open {path}")?;
-    let mut buf = String::new();
-    f.read_to_string(&mut buf)
-        .context("Failed to read {path}")?;
+    let src = fs::read_to_string(path).context("Failed to read source")?;
 
     // TODO: If it had an error, exit.
-    run(&buf)
+    run(&src)
 }
 
 pub fn run_prompt() -> Result<()> {

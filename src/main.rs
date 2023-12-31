@@ -13,7 +13,6 @@ fn main() -> Result<()> {
     tracing_subscriber::fmt().init();
 
     let args: Vec<String> = env::args().skip(1).collect();
-
     match args.len() {
         0 => run_prompt(),
         1 => run_file(&args[0]),
