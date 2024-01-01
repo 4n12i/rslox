@@ -3,21 +3,22 @@ use core::fmt;
 use crate::token_type::TokenType;
 use anyhow::Result;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Token {
-    token_type: TokenType,
+    pub token_type: TokenType,
     pub lexeme: String,
     literal: Literal,
     line: usize,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Literal {
     Str(String),
     Num(f64),
     None,
 }
 
+// TODO: Remove???
 impl fmt::Display for Literal {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
