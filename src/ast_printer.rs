@@ -3,31 +3,26 @@ use crate::expr::Expr::*;
 use anyhow::Result;
 
 #[allow(dead_code)]
-fn print_ast(e: Expr) -> Result<()> {
-    match e {
-        Binary(left, token, right) => {
-            print!("(");
-            print_ast(*left)?;
-            print!("{}", token.lexeme);
-            print_ast(*right)?;
-            print!(")");
+fn format_ast(e: Expr) -> Result<String> {
+    let s = match e {
+        Binary(left, operator, right) => {
+            format!(
+                "({} {} {})",
+                operator.lexeme,
+                format_ast(*left)?,
+                format_ast(*right)?
+            )
         }
         Grouping(expr) => {
-            print!("(grouping");
-            print_ast(*expr)?;
-            print!(")");
+            format!("(group {})", format_ast(*expr)?)
         }
-        Literal(token) => {
-            print!("{}", token.lexeme);
+        Literal(value) => value.lexeme,
+        Unary(operator, right) => {
+            format!("({} {})", operator.lexeme, format_ast(*right)?)
         }
-        Unary(token, expr) => {
-            print!("(");
-            print!("{}", token.lexeme);
-            print_ast(*expr)?;
-            print!(")");
-        }
-    }
-    Ok(())
+    };
+
+    Ok(s)
 }
 
 #[cfg(test)]
@@ -38,8 +33,8 @@ mod tests {
 
     use super::*;
     #[test]
-    fn print() {
-        let e = Expr::Binary(
+    fn print_ast() {
+        let e = format_ast(Expr::Binary(
             Box::new(Expr::Unary(
                 Token::new(TokenType::Minus, "-", Literal::None, 1),
                 Box::new(Expr::Literal(Token::new(
@@ -56,8 +51,8 @@ mod tests {
                 Literal::Num(45.67f64),
                 1,
             ))))),
-        );
-
-        assert!(print_ast(e).is_ok());
+        ));
+        assert!(e.is_ok());
+        println!("{}", e.unwrap());
     }
 }

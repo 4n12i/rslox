@@ -4,7 +4,7 @@ build:
 	
 test: 
 	make check
-	cargo test
+	cargo test -- --nocapture
 
 commit: 
 	make check
