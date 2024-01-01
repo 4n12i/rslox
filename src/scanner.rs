@@ -61,7 +61,6 @@ impl Scanner {
                 tokens.push(t);
             }
         }
-
         tokens.push(Token::new(TokenType::Eof, "", Literal::None, self.line));
 
         Ok(tokens)
@@ -71,32 +70,32 @@ impl Scanner {
         let c = self.advance_one_char()?;
 
         let token = match c {
-            '(' => self.add_token_with_one_symbol(TokenType::LeftParen)?,
-            ')' => self.add_token_with_one_symbol(TokenType::RightParen)?,
-            '{' => self.add_token_with_one_symbol(TokenType::LeftBrace)?,
-            '}' => self.add_token_with_one_symbol(TokenType::RightBrace)?,
-            ',' => self.add_token_with_one_symbol(TokenType::Comma)?,
-            '.' => self.add_token_with_one_symbol(TokenType::Dot)?,
-            '-' => self.add_token_with_one_symbol(TokenType::Minus)?,
-            '+' => self.add_token_with_one_symbol(TokenType::Plus)?,
-            ';' => self.add_token_with_one_symbol(TokenType::Semicolon)?,
-            '*' => self.add_token_with_one_symbol(TokenType::Star)?,
+            '(' => self.add_token(TokenType::LeftParen)?,
+            ')' => self.add_token(TokenType::RightParen)?,
+            '{' => self.add_token(TokenType::LeftBrace)?,
+            '}' => self.add_token(TokenType::RightBrace)?,
+            ',' => self.add_token(TokenType::Comma)?,
+            '.' => self.add_token(TokenType::Dot)?,
+            '-' => self.add_token(TokenType::Minus)?,
+            '+' => self.add_token(TokenType::Plus)?,
+            ';' => self.add_token(TokenType::Semicolon)?,
+            '*' => self.add_token(TokenType::Star)?,
             // Two characters token
             '!' => match self.is_match('=') {
-                true => self.add_token_with_one_symbol(TokenType::BangEqual)?,
-                false => self.add_token_with_one_symbol(TokenType::Bang)?,
+                true => self.add_token(TokenType::BangEqual)?,
+                false => self.add_token(TokenType::Bang)?,
             },
             '=' => match self.is_match('=') {
-                true => self.add_token_with_one_symbol(TokenType::EqualEqual)?,
-                false => self.add_token_with_one_symbol(TokenType::Equal)?,
+                true => self.add_token(TokenType::EqualEqual)?,
+                false => self.add_token(TokenType::Equal)?,
             },
             '<' => match self.is_match('=') {
-                true => self.add_token_with_one_symbol(TokenType::LessEqual)?,
-                false => self.add_token_with_one_symbol(TokenType::Less)?,
+                true => self.add_token(TokenType::LessEqual)?,
+                false => self.add_token(TokenType::Less)?,
             },
             '>' => match self.is_match('=') {
-                true => self.add_token_with_one_symbol(TokenType::GreaterEqual)?,
-                false => self.add_token_with_one_symbol(TokenType::Greater)?,
+                true => self.add_token(TokenType::GreaterEqual)?,
+                false => self.add_token(TokenType::Greater)?,
             },
             '/' => match self.is_match('/') {
                 // A comment goes until the end of the line.
@@ -106,7 +105,7 @@ impl Scanner {
                     }
                     return Ok(None);
                 }
-                false => self.add_token_with_one_symbol(TokenType::Slash)?,
+                false => self.add_token(TokenType::Slash)?,
             },
             ' ' | '\r' | '\t' => return Ok(None), // Ignore whitespace.
             '\n' => {
@@ -114,16 +113,16 @@ impl Scanner {
                 return Ok(None);
             }
             '"' => match self.get_string_literal()? {
-                Some(s) => self.add_token(TokenType::String, Literal::Str(s))?,
+                Some(s) => self.add_token_with_literal(TokenType::String, Literal::Str(s))?,
                 None => return Ok(None),
             },
             _ => {
-                if c.is_ascii_digit() {
+                if is_digit(c) {
                     let n = self.get_number_literal()?;
-                    self.add_token(TokenType::Number, Literal::Num(n))?
+                    self.add_token_with_literal(TokenType::Number, Literal::Num(n))?
                 } else if is_alpha(c) {
                     let t = self.get_identifier()?;
-                    self.add_token_with_one_symbol(t)?
+                    self.add_token(t)?
                 } else {
                     error!("{}", ErrorType::Lexical { line: self.line });
                     return Ok(None);
@@ -147,13 +146,13 @@ impl Scanner {
     }
 
     fn get_number_literal(&mut self) -> Result<f64> {
-        while self.peek_one_ahead()?.is_ascii_digit() {
+        while is_digit(self.peek_one_ahead()?) {
             self.advance_one_char()?;
         }
 
-        if self.peek_one_ahead()? == '.' && self.peek_two_ahead()?.is_ascii_digit() {
+        if self.peek_one_ahead()? == '.' && is_digit(self.peek_two_ahead()?) {
             self.advance_one_char()?;
-            while self.peek_one_ahead()?.is_ascii_digit() {
+            while is_digit(self.peek_one_ahead()?) {
                 self.advance_one_char()?;
             }
         }
@@ -220,11 +219,11 @@ impl Scanner {
         Ok(self.chars[self.current + 1])
     }
 
-    fn add_token_with_one_symbol(&mut self, token_type: TokenType) -> Result<Token> {
-        self.add_token(token_type, Literal::None)
+    fn add_token(&mut self, token_type: TokenType) -> Result<Token> {
+        self.add_token_with_literal(token_type, Literal::None)
     }
 
-    fn add_token(&mut self, token_type: TokenType, literal: Literal) -> Result<Token> {
+    fn add_token_with_literal(&mut self, token_type: TokenType, literal: Literal) -> Result<Token> {
         match self.source.get(self.start..self.current) {
             Some(t) => Ok(Token::new(token_type, t, literal, self.line)),
             None => bail!("Failed to get source code"),
@@ -232,6 +231,9 @@ impl Scanner {
     }
 }
 
+fn is_digit(c: char) -> bool {
+    c.is_ascii_digit()
+}
 fn is_alpha(c: char) -> bool {
     c.is_ascii_alphabetic() || c == '_'
 }
@@ -326,7 +328,6 @@ mod tests {
                 2
             ))
         );
-
         assert_eq!(
             Scanner::new(SRC_DECIMAL).scan_token().unwrap(),
             Some(Token::new(
