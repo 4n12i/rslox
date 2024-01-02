@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
+use crate::error::ErrorType;
 use crate::literal::Literal;
-use crate::lox::ErrorType;
 use crate::token::Token;
 use crate::token_type::TokenType;
 use anyhow::bail;

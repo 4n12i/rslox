@@ -1,3 +1,5 @@
+use crate::ast_printer::format_ast;
+use crate::parser::Parser;
 use crate::scanner::Scanner;
 use anyhow::Context;
 use anyhow::Result;
@@ -5,25 +7,7 @@ use std::fs;
 use std::io::BufRead;
 use std::io::Write;
 use std::io::{self};
-use thiserror::Error;
-use tracing::error;
 use tracing::info;
-
-#[derive(Error, Debug)]
-pub enum ErrorType {
-    #[error("[line {line}] Error{place:?}: {message:?}")]
-    _Syntax {
-        line: usize,
-        place: String,
-        message: String,
-    },
-
-    #[error("[line {line}] Unexpected character")]
-    Lexical { line: usize },
-
-    #[error("[line {line}] Unterminated string")]
-    StringEnd { line: usize },
-}
 
 pub fn run_file(path: &str) -> Result<()> {
     let src = fs::read_to_string(path).context("Failed to read source")?;
@@ -62,8 +46,11 @@ fn run(source: &str) -> Result<()> {
         info!("{}", t.get_string()?);
     }
 
+    let mut parser = Parser::new(tokens);
+    let expr = parser.run()?;
+    info!("{}", format_ast(expr)?);
+
     // TODO: Stop if there was a syntax/resolution error.
-    // TODO: Add a parser, resolver and interpreter.
 
     Ok(())
 }

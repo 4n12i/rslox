@@ -4,8 +4,12 @@ use anyhow::bail;
 use anyhow::Result;
 use std::env;
 
+mod ast_printer;
+mod error;
+mod expr;
 mod literal;
 mod lox;
+mod parser;
 mod scanner;
 mod token;
 mod token_type;

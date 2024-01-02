@@ -1,9 +1,8 @@
 use crate::expr::Expr;
 use crate::expr::Expr::*;
-use anyhow::Result;
+use anyhow::{bail, Result};
 
-#[allow(dead_code)]
-fn format_ast(e: Expr) -> Result<String> {
+pub fn format_ast(e: Expr) -> Result<String> {
     let s = match e {
         Binary(left, operator, right) => {
             format!(
@@ -20,6 +19,8 @@ fn format_ast(e: Expr) -> Result<String> {
         Unary(operator, right) => {
             format!("({} {})", operator.lexeme, format_ast(*right)?)
         }
+        // TODO: Remove
+        None => bail!("Expr is None"),
     };
 
     Ok(s)
