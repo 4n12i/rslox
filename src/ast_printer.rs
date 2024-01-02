@@ -16,7 +16,7 @@ fn format_ast(e: Expr) -> Result<String> {
         Grouping(expr) => {
             format!("(group {})", format_ast(*expr)?)
         }
-        Literal(value) => value.lexeme,
+        Literal(value) => value.to_string(),
         Unary(operator, right) => {
             format!("({} {})", operator.lexeme, format_ast(*right)?)
         }
@@ -27,7 +27,7 @@ fn format_ast(e: Expr) -> Result<String> {
 
 #[cfg(test)]
 mod tests {
-    use crate::token::Literal;
+    use crate::literal::Literal;
     use crate::token::Token;
     use crate::token_type::TokenType;
 
@@ -37,19 +37,11 @@ mod tests {
         let e = format_ast(Expr::Binary(
             Box::new(Expr::Unary(
                 Token::new(TokenType::Minus, "-", Literal::None, 1),
-                Box::new(Expr::Literal(Token::new(
-                    TokenType::Number,
-                    "123",
-                    Literal::Num(123f64),
-                    1,
-                ))),
+                Box::new(Expr::Literal(Literal::Num(123f64))),
             )),
             Token::new(TokenType::Star, "*", Literal::None, 1),
-            Box::new(Expr::Grouping(Box::new(Expr::Literal(Token::new(
-                TokenType::Number,
-                "45.67",
-                Literal::Num(45.67f64),
-                1,
+            Box::new(Expr::Grouping(Box::new(Expr::Literal(Literal::Num(
+                45.67f64,
             ))))),
         ));
         assert!(e.is_ok());

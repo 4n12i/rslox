@@ -1,5 +1,4 @@
-use core::fmt;
-
+use crate::literal::Literal;
 use crate::token_type::TokenType;
 use anyhow::Result;
 
@@ -7,26 +6,8 @@ use anyhow::Result;
 pub struct Token {
     pub token_type: TokenType,
     pub lexeme: String,
-    literal: Literal,
+    pub literal: Literal,
     line: usize,
-}
-
-#[derive(Debug, PartialEq, Clone)]
-pub enum Literal {
-    Str(String),
-    Num(f64),
-    None,
-}
-
-// TODO: Remove???
-impl fmt::Display for Literal {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Self::Str(s) => write!(f, "{s}"),
-            Self::Num(n) => write!(f, "{n}"),
-            Self::None => write!(f, "null"),
-        }
-    }
 }
 
 impl Token {

@@ -1,9 +1,9 @@
 use crate::expr::Expr;
-use crate::{
-    token::{Literal, Token},
-    token_type::TokenType,
-};
-use anyhow::{bail, Result};
+use crate::literal::Literal;
+use crate::token::Token;
+use crate::token_type::TokenType;
+use anyhow::bail;
+use anyhow::Result;
 
 #[allow(dead_code)]
 struct Parser {
@@ -46,36 +46,16 @@ impl Parser {
 
     fn primary(&mut self) -> Result<Expr> {
         if self.check_token_type(&[TokenType::False]) {
-            return Ok(Expr::Literal(Token::new(
-                TokenType::False,
-                "false",
-                Literal::None,
-                1,
-            )));
+            return Ok(Expr::Literal(Literal::Bool(false)));
         } else if self.check_token_type(&[TokenType::True]) {
-            return Ok(Expr::Literal(Token::new(
-                TokenType::True,
-                "true",
-                Literal::None,
-                1,
-            )));
+            return Ok(Expr::Literal(Literal::Bool(true)));
         } else if self.check_token_type(&[TokenType::Nil]) {
-            return Ok(Expr::Literal(Token::new(
-                TokenType::False,
-                "null",
-                Literal::None,
-                1,
-            )));
+            return Ok(Expr::Literal(Literal::None));
         } else if self.check_token_type(&[TokenType::Number, TokenType::String]) {
-            return Ok(Expr::Literal(self.previous()?.clone()));
+            return Ok(Expr::Literal(self.previous()?.literal.clone()));
         }
 
-        Ok(Expr::Literal(Token::new(
-            TokenType::And,
-            "and",
-            Literal::None,
-            1,
-        )))
+        Ok(Expr::Literal(Literal::None))
     }
 
     fn check_token_type(&mut self, token_types: &[TokenType]) -> bool {

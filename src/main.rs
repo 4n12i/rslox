@@ -4,6 +4,7 @@ use anyhow::bail;
 use anyhow::Result;
 use std::env;
 
+mod literal;
 mod lox;
 mod scanner;
 mod token;
