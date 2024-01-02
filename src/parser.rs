@@ -48,7 +48,7 @@ impl Parser {
 
     /// Rule: comparison -> term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
     fn comparison(&mut self) -> Result<Box<Expr>> {
-        let mut expr = self.factor()?;
+        let mut expr = self.term()?;
 
         let t = [
             TokenType::Greater,
@@ -58,7 +58,7 @@ impl Parser {
         ];
         while self.is_match(&t) {
             let operator = self.previous().to_owned();
-            let right = self.factor()?;
+            let right = self.term()?;
             expr = Box::new(Expr::Binary(expr, operator, right));
         }
 
@@ -103,7 +103,7 @@ impl Parser {
                 let right = self.unary()?;
                 Ok(Box::new(Expr::Unary(operator.clone(), right.clone())))
             }
-            _ => Ok(Box::new(Expr::None)),
+            _ => Ok(Box::new(self.primary()?)),
         }
     }
 
