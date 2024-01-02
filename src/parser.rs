@@ -5,13 +5,13 @@ use crate::token_type::TokenType;
 use anyhow::bail;
 use anyhow::Result;
 use tracing::error;
+use tracing::info;
 
 pub struct Parser {
     tokens: Vec<Token>,
     current: usize,
 }
 
-#[allow(dead_code)]
 impl Parser {
     pub fn new(tokens: Vec<Token>) -> Self {
         Parser { tokens, current: 0 }
@@ -19,10 +19,14 @@ impl Parser {
 
     pub fn run(&mut self) -> Result<Expr> {
         match self.expression() {
-            Ok(expr) => Ok(*expr),
+            Ok(expr) => {
+                let e = *expr;
+                info!("{e}");
+                Ok(e)
+            }
             Err(message) => {
                 error!("{message}");
-                Ok(Expr::None)
+                bail!("Parse Error")
             }
         }
     }
@@ -38,7 +42,7 @@ impl Parser {
 
         let t = [TokenType::BangEqual, TokenType::EqualEqual];
         while self.is_match(&t) {
-            let operator = self.previous().to_owned();
+            let operator = self.previous().clone();
             let right = self.factor()?;
             expr = Box::new(Expr::Binary(expr, operator, right));
         }
@@ -57,7 +61,7 @@ impl Parser {
             TokenType::LessEqual,
         ];
         while self.is_match(&t) {
-            let operator = self.previous().to_owned();
+            let operator = self.previous().clone();
             let right = self.term()?;
             expr = Box::new(Expr::Binary(expr, operator, right));
         }
@@ -71,7 +75,7 @@ impl Parser {
 
         let t = [TokenType::Minus, TokenType::Plus];
         while self.is_match(&t) {
-            let operator = self.previous().to_owned();
+            let operator = self.previous().clone();
             let right = self.factor()?;
             expr = Box::new(Expr::Binary(expr, operator, right));
         }
@@ -85,7 +89,7 @@ impl Parser {
 
         let t = [TokenType::Slash, TokenType::Star];
         while self.is_match(&t) {
-            let operator = self.previous().to_owned();
+            let operator = self.previous().clone();
             let right = self.unary()?;
             expr = Box::new(Expr::Binary(expr, operator, right));
         }
@@ -96,10 +100,9 @@ impl Parser {
     /// Rule: unary -> ( "!" | "-" ) unary | primary ;
     fn unary(&mut self) -> Result<Box<Expr>> {
         match self.peek().token_type {
-            // TODO: Check if token type is EOF
             TokenType::Bang | TokenType::Minus => {
                 self.advance();
-                let operator = self.previous().to_owned();
+                let operator = self.previous().clone();
                 let right = self.unary()?;
                 Ok(Box::new(Expr::Unary(operator.clone(), right.clone())))
             }
@@ -109,7 +112,6 @@ impl Parser {
 
     /// Rule: primary -> NUMBER | STRING | "true" | "false" | "nil" | "(" expression ")" ;
     fn primary(&mut self) -> Result<Expr> {
-        // TODO: Check if token type is EOF
         match self.peek().token_type {
             TokenType::Number
             | TokenType::String
@@ -117,7 +119,7 @@ impl Parser {
             | TokenType::False
             | TokenType::Nil => {
                 self.advance();
-                Ok(Expr::Literal(self.previous().literal.to_owned()))
+                Ok(Expr::Literal(self.previous().literal.clone()))
             }
             TokenType::LeftParen => {
                 self.advance();
@@ -125,7 +127,7 @@ impl Parser {
                 self.consume(TokenType::RightParen, "Expect ')' after expression")?;
                 Ok(Expr::Grouping(expr))
             }
-            _ => bail!("Expect expression"),
+            _ => bail!(get_parse_error(self.peek(), "Expect expression")),
         }
     }
 
@@ -142,7 +144,7 @@ impl Parser {
             return Ok(self.advance());
         }
 
-        bail!("{}", get_parse_error(self.peek(), message)?)
+        bail!("{}", get_parse_error(self.peek(), message))
     }
 
     fn check(&mut self, token_type: &TokenType) -> bool {
@@ -175,7 +177,7 @@ impl Parser {
         &self.tokens[self.current - 1]
     }
 
-    fn synchronize(&mut self) -> Result<()> {
+    fn _synchronize(&mut self) -> Result<()> {
         let t = [
             TokenType::Class,
             TokenType::Fun,

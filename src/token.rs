@@ -1,6 +1,7 @@
+use core::fmt;
+
 use crate::literal::Literal;
 use crate::token_type::TokenType;
-use anyhow::Result;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Token {
@@ -19,12 +20,11 @@ impl Token {
             line,
         }
     }
+}
 
-    pub fn get_string(&mut self) -> Result<String> {
-        Ok(format!(
-            "{:?} {} {}",
-            self.token_type, self.lexeme, self.literal
-        ))
+impl fmt::Display for Token {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{} {} {}", self.token_type, self.lexeme, self.literal)
     }
 }
 
@@ -33,12 +33,12 @@ mod tests {
     use super::*;
     #[test]
     fn generate_token() {
-        let mut token = Token::new(
+        let token = Token::new(
             TokenType::String,
             "test",
             Literal::Str("test".to_string()),
             1,
         );
-        assert_eq!(format!("String test test"), token.get_string().unwrap());
+        assert_eq!("String test test".to_string(), token.to_string());
     }
 }

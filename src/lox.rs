@@ -1,4 +1,3 @@
-use crate::ast_printer::format_ast;
 use crate::parser::Parser;
 use crate::scanner::Scanner;
 use anyhow::Context;
@@ -7,19 +6,15 @@ use std::fs;
 use std::io::BufRead;
 use std::io::Write;
 use std::io::{self};
-use tracing::info;
 
 pub fn run_file(path: &str) -> Result<()> {
-    let src = fs::read_to_string(path).context("Failed to read source")?;
-
-    // TODO: If it had an error, exit.
+    let src = fs::read_to_string(path).context("Failed to read a source file")?;
     run(&src)
 }
 
 pub fn run_prompt() -> Result<()> {
     let mut buffer = String::new();
-    let stdin = io::stdin();
-    let mut handle = stdin.lock();
+    let mut handle = io::stdin().lock();
 
     loop {
         print!("> ");
@@ -28,29 +23,19 @@ pub fn run_prompt() -> Result<()> {
             println!();
             break;
         }
-        run(&buffer)?;
+        let result = run(&buffer);
         buffer.clear();
-
-        // TODO: Reset an error flag.
+        if result.is_err() {
+            continue; // Reset an error.
+        }
     }
 
     Ok(())
 }
 
 fn run(source: &str) -> Result<()> {
-    let mut scanner = Scanner::new(source);
-    let mut tokens = scanner.scan_tokens()?;
-
-    // For now, just print the tokens.
-    for t in &mut tokens {
-        info!("[SCANNER] {}", t.get_string()?);
-    }
-
-    let mut parser = Parser::new(tokens);
-    let expr = parser.run()?;
-    info!("[PARSER] {}", format_ast(expr)?);
-
-    // TODO: Stop if there was a syntax/resolution error.
+    let tokens = Scanner::new(source).run()?;
+    let _expr = Parser::new(tokens).run()?;
 
     Ok(())
 }

@@ -8,6 +8,7 @@ use anyhow::bail;
 use anyhow::Result;
 use once_cell::sync::Lazy;
 use tracing::error;
+use tracing::info;
 
 static KEYWORDS: Lazy<HashMap<&'static str, TokenType>> = Lazy::new(|| {
     HashMap::from([
@@ -51,14 +52,21 @@ impl Scanner {
         }
     }
 
-    pub fn scan_tokens(&mut self) -> Result<Vec<Token>> {
+    pub fn run(&mut self) -> Result<Vec<Token>> {
         let mut tokens = Vec::new();
 
         while !self.is_at_end() {
             // At the beginning of the next lexeme.
             self.start = self.current;
-            if let Some(t) = self.scan_token()? {
-                tokens.push(t);
+            match self.scan_token() {
+                Ok(Some(t)) => {
+                    info!("{t}");
+                    tokens.push(t);
+                }
+                Err(e) => {
+                    error!("{e}");
+                }
+                _ => (),
             }
         }
         tokens.push(Token::new(TokenType::Eof, "", Literal::None, self.line));
@@ -70,32 +78,32 @@ impl Scanner {
         let c = self.advance_one_char()?;
 
         let token = match c {
-            '(' => self.add_token(TokenType::LeftParen)?,
-            ')' => self.add_token(TokenType::RightParen)?,
-            '{' => self.add_token(TokenType::LeftBrace)?,
-            '}' => self.add_token(TokenType::RightBrace)?,
-            ',' => self.add_token(TokenType::Comma)?,
-            '.' => self.add_token(TokenType::Dot)?,
-            '-' => self.add_token(TokenType::Minus)?,
-            '+' => self.add_token(TokenType::Plus)?,
-            ';' => self.add_token(TokenType::Semicolon)?,
-            '*' => self.add_token(TokenType::Star)?,
+            '(' => self.create_token(TokenType::LeftParen)?,
+            ')' => self.create_token(TokenType::RightParen)?,
+            '{' => self.create_token(TokenType::LeftBrace)?,
+            '}' => self.create_token(TokenType::RightBrace)?,
+            ',' => self.create_token(TokenType::Comma)?,
+            '.' => self.create_token(TokenType::Dot)?,
+            '-' => self.create_token(TokenType::Minus)?,
+            '+' => self.create_token(TokenType::Plus)?,
+            ';' => self.create_token(TokenType::Semicolon)?,
+            '*' => self.create_token(TokenType::Star)?,
             // Two characters token
             '!' => match self.is_match('=') {
-                true => self.add_token(TokenType::BangEqual)?,
-                false => self.add_token(TokenType::Bang)?,
+                true => self.create_token(TokenType::BangEqual)?,
+                false => self.create_token(TokenType::Bang)?,
             },
             '=' => match self.is_match('=') {
-                true => self.add_token(TokenType::EqualEqual)?,
-                false => self.add_token(TokenType::Equal)?,
+                true => self.create_token(TokenType::EqualEqual)?,
+                false => self.create_token(TokenType::Equal)?,
             },
             '<' => match self.is_match('=') {
-                true => self.add_token(TokenType::LessEqual)?,
-                false => self.add_token(TokenType::Less)?,
+                true => self.create_token(TokenType::LessEqual)?,
+                false => self.create_token(TokenType::Less)?,
             },
             '>' => match self.is_match('=') {
-                true => self.add_token(TokenType::GreaterEqual)?,
-                false => self.add_token(TokenType::Greater)?,
+                true => self.create_token(TokenType::GreaterEqual)?,
+                false => self.create_token(TokenType::Greater)?,
             },
             '/' => match self.is_match('/') {
                 // A comment goes until the end of the line.
@@ -105,27 +113,26 @@ impl Scanner {
                     }
                     return Ok(None);
                 }
-                false => self.add_token(TokenType::Slash)?,
+                false => self.create_token(TokenType::Slash)?,
             },
             ' ' | '\r' | '\t' => return Ok(None), // Ignore whitespace.
             '\n' => {
                 self.line += 1;
                 return Ok(None);
             }
-            '"' => match self.get_string_literal()? {
-                Some(s) => self.add_token_with_literal(TokenType::String, Literal::Str(s))?,
+            '"' => match self.get_string()? {
+                Some(s) => self.create_token_with_literal(TokenType::String, Literal::Str(s))?,
                 None => return Ok(None),
             },
             _ => {
                 if is_digit(c) {
-                    let n = self.get_number_literal()?;
-                    self.add_token_with_literal(TokenType::Number, Literal::Num(n))?
+                    let n = self.get_number()?;
+                    self.create_token_with_literal(TokenType::Number, Literal::Num(n))?
                 } else if is_alpha(c) {
                     let t = self.get_identifier()?;
-                    self.add_token(t)?
+                    self.create_token(t)?
                 } else {
-                    error!("{}", ErrorType::Lexical { line: self.line });
-                    return Ok(None);
+                    bail!(ErrorType::Lexical { line: self.line })
                 }
             }
         };
@@ -145,7 +152,7 @@ impl Scanner {
         }
     }
 
-    fn get_number_literal(&mut self) -> Result<f64> {
+    fn get_number(&mut self) -> Result<f64> {
         while is_digit(self.peek_one_ahead()?) {
             self.advance_one_char()?;
         }
@@ -161,7 +168,7 @@ impl Scanner {
         Ok(value)
     }
 
-    fn get_string_literal(&mut self) -> Result<Option<String>> {
+    fn get_string(&mut self) -> Result<Option<String>> {
         while self.peek_one_ahead()? != '"' && !self.is_at_end() {
             if self.peek_one_ahead()? == '\n' {
                 self.line += 1;
@@ -170,8 +177,7 @@ impl Scanner {
         }
 
         if self.is_at_end() {
-            error!("{}", ErrorType::StringEnd { line: self.line });
-            return Ok(None);
+            bail!(ErrorType::StringEnd { line: self.line });
         }
 
         // The closing `"`.
@@ -219,14 +225,18 @@ impl Scanner {
         Ok(self.chars[self.current + 1])
     }
 
-    fn add_token(&mut self, token_type: TokenType) -> Result<Token> {
-        self.add_token_with_literal(token_type, Literal::None)
+    fn create_token(&mut self, token_type: TokenType) -> Result<Token> {
+        self.create_token_with_literal(token_type, Literal::None)
     }
 
-    fn add_token_with_literal(&mut self, token_type: TokenType, literal: Literal) -> Result<Token> {
+    fn create_token_with_literal(
+        &mut self,
+        token_type: TokenType,
+        literal: Literal,
+    ) -> Result<Token> {
         match self.source.get(self.start..self.current) {
             Some(t) => Ok(Token::new(token_type, t, literal, self.line)),
-            None => bail!("Failed to get source code"),
+            None => bail!("Failed to get a lexeme from source code"),
         }
     }
 }
@@ -263,7 +273,7 @@ mod tests {
     #[test]
     fn scan_tokens() {
         assert_eq!(
-            Scanner::new(SRC_ADDITION).scan_tokens().unwrap(),
+            Scanner::new(SRC_ADDITION).run().unwrap(),
             vec![
                 Token::new(TokenType::Number, "1", Literal::Num(1f64), 1),
                 Token::new(TokenType::Plus, "+", Literal::None, 1),
@@ -272,7 +282,7 @@ mod tests {
             ]
         );
         assert_eq!(
-            Scanner::new(SRC_IF_AND_COMMENT).scan_tokens().unwrap(),
+            Scanner::new(SRC_IF_AND_COMMENT).run().unwrap(),
             vec![
                 Token::new(TokenType::If, "if", Literal::None, 1),
                 Token::new(TokenType::LeftParen, "(", Literal::None, 1),

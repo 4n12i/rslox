@@ -1,6 +1,5 @@
 use crate::token::Token;
 use crate::token_type::TokenType;
-use anyhow::Result;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -19,13 +18,12 @@ pub enum ErrorType {
     StringEnd { line: usize },
 }
 
-pub fn get_parse_error(token: &Token, message: &str) -> Result<String> {
+pub fn get_parse_error(token: &Token, message: &str) -> String {
     let place = if token.token_type == TokenType::Eof {
-        "at end".to_string()
+        " at end".to_string()
     } else {
-        format!("at '{}'", token.lexeme)
+        format!(" at '{}'", token.lexeme)
     };
 
-    let s = format!("[line {}] Error{}: {}", token.line, place, message);
-    Ok(s)
+    format!("[line {}] Error{}: {}", token.line, place, message)
 }
