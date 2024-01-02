@@ -1,10 +1,10 @@
 use crate::error::get_parse_error;
 use crate::expr::Expr;
-use crate::literal::Literal;
 use crate::token::Token;
 use crate::token_type::TokenType;
 use anyhow::bail;
 use anyhow::Result;
+use tracing::error;
 
 pub struct Parser {
     tokens: Vec<Token>,
@@ -19,101 +19,160 @@ impl Parser {
 
     pub fn run(&mut self) -> Result<Expr> {
         match self.expression() {
-            Ok(e) => Ok(e),
-            Err(_) => Ok(Expr::None),
+            Ok(expr) => Ok(*expr),
+            Err(message) => {
+                error!("{message}");
+                Ok(Expr::None)
+            }
         }
     }
 
-    fn expression(&mut self) -> Result<Expr> {
+    /// Rule: equality ;
+    fn expression(&mut self) -> Result<Box<Expr>> {
         self.equality()
     }
 
-    fn equality(&mut self) -> Result<Expr> {
-        self.comparison()
-    }
+    /// Rule: comparison ( ( "!=" | "==" ) comparison )* ;
+    fn equality(&mut self) -> Result<Box<Expr>> {
+        let mut expr = self.comparison()?;
 
-    fn comparison(&mut self) -> Result<Expr> {
-        Ok(Expr::Literal(Literal::None))
-    }
-
-    fn term(&mut self) -> Result<()> {
-        Ok(())
-    }
-
-    fn factor(&mut self) -> Result<()> {
-        Ok(())
-    }
-
-    fn unary(&mut self) -> Result<()> {
-        Ok(())
-    }
-
-    fn primary(&mut self) -> Result<Expr> {
-        if self.check_token_type(&[TokenType::False]) {
-            return Ok(Expr::Literal(Literal::Bool(false)));
-        } else if self.check_token_type(&[TokenType::True]) {
-            return Ok(Expr::Literal(Literal::Bool(true)));
-        } else if self.check_token_type(&[TokenType::Nil]) {
-            return Ok(Expr::Literal(Literal::None));
-        } else if self.check_token_type(&[TokenType::Number, TokenType::String]) {
-            return Ok(Expr::Literal(self.previous()?.literal.clone()));
-        } else if self.check_token_type(&[TokenType::LeftParen]) {
-            let expr = self.expression()?;
-            // TODO: consume()
-            return Ok(Expr::Grouping(Box::new(expr)));
+        let t = [TokenType::BangEqual, TokenType::EqualEqual];
+        while self.is_match(&t) {
+            let operator = self.previous().to_owned();
+            let right = self.factor()?;
+            expr = Box::new(Expr::Binary(expr, operator, right));
         }
 
-        bail!("Expect expression")
+        Ok(expr)
     }
 
-    fn check_token_type(&mut self, token_types: &[TokenType]) -> bool {
-        for token_type in token_types {
-            if self.is_type_match(token_type) {
-                self.advance().unwrap();
-                return true;
+    /// Rule: comparison -> term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
+    fn comparison(&mut self) -> Result<Box<Expr>> {
+        let mut expr = self.factor()?;
+
+        let t = [
+            TokenType::Greater,
+            TokenType::GreaterEqual,
+            TokenType::Less,
+            TokenType::LessEqual,
+        ];
+        while self.is_match(&t) {
+            let operator = self.previous().to_owned();
+            let right = self.factor()?;
+            expr = Box::new(Expr::Binary(expr, operator, right));
+        }
+
+        Ok(expr)
+    }
+
+    /// Rule: term -> factor ( ( "-" | "+" ) factor )* ;
+    fn term(&mut self) -> Result<Box<Expr>> {
+        let mut expr = self.factor()?;
+
+        let t = [TokenType::Minus, TokenType::Plus];
+        while self.is_match(&t) {
+            let operator = self.previous().to_owned();
+            let right = self.factor()?;
+            expr = Box::new(Expr::Binary(expr, operator, right));
+        }
+
+        Ok(expr)
+    }
+
+    /// Rule: factor -> unary ( ( "/" | "*" ) unary )* ;
+    fn factor(&mut self) -> Result<Box<Expr>> {
+        let mut expr = self.unary()?;
+
+        let t = [TokenType::Slash, TokenType::Star];
+        while self.is_match(&t) {
+            let operator = self.previous().to_owned();
+            let right = self.unary()?;
+            expr = Box::new(Expr::Binary(expr, operator, right));
+        }
+
+        Ok(expr)
+    }
+
+    /// Rule: unary -> ( "!" | "-" ) unary | primary ;
+    fn unary(&mut self) -> Result<Box<Expr>> {
+        match self.peek().token_type {
+            // TODO: Check if token type is EOF
+            TokenType::Bang | TokenType::Minus => {
+                self.advance();
+                let operator = self.previous().to_owned();
+                let right = self.unary()?;
+                Ok(Box::new(Expr::Unary(operator.clone(), right.clone())))
             }
+            _ => Ok(Box::new(Expr::None)),
+        }
+    }
+
+    /// Rule: primary -> NUMBER | STRING | "true" | "false" | "nil" | "(" expression ")" ;
+    fn primary(&mut self) -> Result<Expr> {
+        // TODO: Check if token type is EOF
+        match self.peek().token_type {
+            TokenType::Number
+            | TokenType::String
+            | TokenType::True
+            | TokenType::False
+            | TokenType::Nil => {
+                self.advance();
+                Ok(Expr::Literal(self.previous().literal.to_owned()))
+            }
+            TokenType::LeftParen => {
+                self.advance();
+                let expr = self.expression()?;
+                self.consume(TokenType::RightParen, "Expect ')' after expression")?;
+                Ok(Expr::Grouping(expr))
+            }
+            _ => bail!("Expect expression"),
+        }
+    }
+
+    fn is_match(&mut self, token_types: &[TokenType]) -> bool {
+        if token_types.contains(&self.peek().token_type) && !self.is_at_end() {
+            self.advance();
+            return true;
         }
         false
     }
 
-    fn consume(&mut self, token_type: &TokenType, message: &str) -> Result<&Token> {
-        if self.is_type_match(token_type) {
-            return self.advance();
+    fn consume(&mut self, token_type: TokenType, message: &str) -> Result<&Token> {
+        if self.check(&token_type) {
+            return Ok(self.advance());
         }
 
-        bail!("{}", get_parse_error(self.peek()?, message)?)
+        bail!("{}", get_parse_error(self.peek(), message)?)
     }
 
-    fn is_type_match(&mut self, token_type: &TokenType) -> bool {
+    fn check(&mut self, token_type: &TokenType) -> bool {
         if self.is_at_end() {
             return false;
         }
-        &self.peek().unwrap().token_type == token_type
+        &self.peek().token_type == token_type
     }
 
-    fn advance(&mut self) -> Result<&Token> {
+    /// Consume the current token and return it.
+    fn advance(&mut self) -> &Token {
         if !self.is_at_end() {
             self.current += 1;
         }
         self.previous()
     }
 
+    /// Check if the token list has been parsed to the end.
     fn is_at_end(&mut self) -> bool {
-        self.peek().unwrap().token_type == TokenType::Eof
+        self.peek().token_type == TokenType::Eof
     }
 
-    fn peek(&mut self) -> Result<Token> {
-        match self.tokens.get(self.current) {
-            Some(t) => Ok(t.to_owned()),
-            None => bail!("Failed to get a current token"),
-        }
+    /// Return the current token not yet consumed.
+    fn peek(&mut self) -> &Token {
+        &self.tokens[self.current]
     }
 
-    fn previous(&mut self) -> Result<&Token> {
-        match self.tokens.get(self.current - 1) {
-            Some(t) => Ok(t),
-            None => bail!("Failed to get a previous token"),
-        }
+    /// Return the last token consumed.
+    fn previous(&mut self) -> &Token {
+        &self.tokens[self.current - 1]
     }
 
     fn synchronize(&mut self) -> Result<()> {
@@ -127,16 +186,16 @@ impl Parser {
             TokenType::Print,
             TokenType::Return,
         ];
-        self.advance()?;
 
+        self.advance();
         while !self.is_at_end() {
-            if self.previous()?.token_type == TokenType::Semicolon {
+            if self.previous().token_type == TokenType::Semicolon {
                 return Ok(());
             }
-            if t.contains(&self.peek()?.token_type) {
+            if t.contains(&self.peek().token_type) {
                 return Ok(());
             }
-            self.advance()?;
+            self.advance();
         }
 
         Ok(())

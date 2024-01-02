@@ -19,7 +19,7 @@ pub enum ErrorType {
     StringEnd { line: usize },
 }
 
-pub fn get_parse_error(token: Token, message: &str) -> Result<String> {
+pub fn get_parse_error(token: &Token, message: &str) -> Result<String> {
     let place = if token.token_type == TokenType::Eof {
         "at end".to_string()
     } else {

@@ -1,6 +1,6 @@
 use crate::expr::Expr;
 use crate::expr::Expr::*;
-use anyhow::{bail, Result};
+use anyhow::Result;
 
 pub fn format_ast(e: Expr) -> Result<String> {
     let s = match e {
@@ -19,8 +19,8 @@ pub fn format_ast(e: Expr) -> Result<String> {
         Unary(operator, right) => {
             format!("({} {})", operator.lexeme, format_ast(*right)?)
         }
-        // TODO: Remove
-        None => bail!("Expr is None"),
+        // TODO: Remove later
+        None => "Failed to parse an expression".to_string(),
     };
 
     Ok(s)

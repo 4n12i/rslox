@@ -43,12 +43,12 @@ fn run(source: &str) -> Result<()> {
 
     // For now, just print the tokens.
     for t in &mut tokens {
-        info!("{}", t.get_string()?);
+        info!("[SCANNER] {}", t.get_string()?);
     }
 
     let mut parser = Parser::new(tokens);
     let expr = parser.run()?;
-    info!("{}", format_ast(expr)?);
+    info!("[PARSER] {}", format_ast(expr)?);
 
     // TODO: Stop if there was a syntax/resolution error.
 
