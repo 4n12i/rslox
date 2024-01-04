@@ -1,11 +1,9 @@
-use core::fmt;
-
 use crate::literal::Literal;
 use crate::token::Token;
 use anyhow::Result;
+use core::fmt;
 
-#[allow(dead_code)]
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Expr {
     Binary(Box<Expr>, Token, Box<Expr>), // +, -, *, /, ==, !=, <, <=, >, >=
     Grouping(Box<Expr>),                 // ( and )
@@ -52,11 +50,11 @@ mod tests {
     fn print_ast() {
         let e = Expr::format_ast(&Expr::Binary(
             Box::new(Expr::Unary(
-                Token::new(TokenType::Minus, "-", Literal::None, 1),
-                Box::new(Expr::Literal(Literal::Num(123f64))),
+                Token::new(TokenType::Minus, "-", Literal::Nil, 1),
+                Box::new(Expr::Literal(Literal::Number(123f64))),
             )),
-            Token::new(TokenType::Star, "*", Literal::None, 1),
-            Box::new(Expr::Grouping(Box::new(Expr::Literal(Literal::Num(
+            Token::new(TokenType::Star, "*", Literal::Nil, 1),
+            Box::new(Expr::Grouping(Box::new(Expr::Literal(Literal::Number(
                 45.67f64,
             ))))),
         ));

@@ -1,3 +1,4 @@
+use crate::interpreter::Interpreter;
 use crate::parser::Parser;
 use crate::scanner::Scanner;
 use anyhow::Context;
@@ -35,7 +36,8 @@ pub fn run_prompt() -> Result<()> {
 
 fn run(source: &str) -> Result<()> {
     let tokens = Scanner::new(source).run()?;
-    let _expr = Parser::new(tokens).run()?;
+    let expr = Parser::new(tokens).run()?;
+    Interpreter::run(&expr)?;
 
     Ok(())
 }

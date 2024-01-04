@@ -1,9 +1,8 @@
-use core::fmt;
-
 use crate::literal::Literal;
 use crate::token_type::TokenType;
+use core::fmt;
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Token {
     pub token_type: TokenType,
     pub lexeme: String,
@@ -36,7 +35,7 @@ mod tests {
         let token = Token::new(
             TokenType::String,
             "test",
-            Literal::Str("test".to_string()),
+            Literal::String("test".to_string()),
             1,
         );
         assert_eq!("String test test".to_string(), token.to_string());

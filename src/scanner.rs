@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use crate::error::ErrorType;
 use crate::literal::Literal;
 use crate::token::Token;
@@ -7,6 +5,7 @@ use crate::token_type::TokenType;
 use anyhow::bail;
 use anyhow::Result;
 use once_cell::sync::Lazy;
+use std::collections::HashMap;
 use tracing::error;
 use tracing::info;
 
@@ -69,7 +68,7 @@ impl Scanner {
                 _ => (),
             }
         }
-        tokens.push(Token::new(TokenType::Eof, "", Literal::None, self.line));
+        tokens.push(Token::new(TokenType::Eof, "", Literal::Nil, self.line));
 
         Ok(tokens)
     }
@@ -121,13 +120,13 @@ impl Scanner {
                 return Ok(None);
             }
             '"' => match self.get_string()? {
-                Some(s) => self.create_token_with_literal(TokenType::String, Literal::Str(s))?,
+                Some(s) => self.create_token_with_literal(TokenType::String, Literal::String(s))?,
                 None => return Ok(None),
             },
             _ => {
                 if is_digit(c) {
                     let n = self.get_number()?;
-                    self.create_token_with_literal(TokenType::Number, Literal::Num(n))?
+                    self.create_token_with_literal(TokenType::Number, Literal::Number(n))?
                 } else if is_alpha(c) {
                     let t = self.get_identifier()?;
                     self.create_token(t)?
@@ -226,7 +225,7 @@ impl Scanner {
     }
 
     fn create_token(&mut self, token_type: TokenType) -> Result<Token> {
-        self.create_token_with_literal(token_type, Literal::None)
+        self.create_token_with_literal(token_type, Literal::Nil)
     }
 
     fn create_token_with_literal(
@@ -275,26 +274,26 @@ mod tests {
         assert_eq!(
             Scanner::new(SRC_ADDITION).run().unwrap(),
             vec![
-                Token::new(TokenType::Number, "1", Literal::Num(1f64), 1),
-                Token::new(TokenType::Plus, "+", Literal::None, 1),
-                Token::new(TokenType::Number, "2", Literal::Num(2f64), 1),
-                Token::new(TokenType::Eof, "", Literal::None, 1)
+                Token::new(TokenType::Number, "1", Literal::Number(1f64), 1),
+                Token::new(TokenType::Plus, "+", Literal::Nil, 1),
+                Token::new(TokenType::Number, "2", Literal::Number(2f64), 1),
+                Token::new(TokenType::Eof, "", Literal::Nil, 1)
             ]
         );
         assert_eq!(
             Scanner::new(SRC_IF_AND_COMMENT).run().unwrap(),
             vec![
-                Token::new(TokenType::If, "if", Literal::None, 1),
-                Token::new(TokenType::LeftParen, "(", Literal::None, 1),
-                Token::new(TokenType::Identifier, "n1", Literal::None, 1),
-                Token::new(TokenType::Plus, "+", Literal::None, 1),
-                Token::new(TokenType::Identifier, "n2", Literal::None, 1),
-                Token::new(TokenType::RightParen, ")", Literal::None, 1),
-                Token::new(TokenType::LessEqual, "<=", Literal::None, 1),
-                Token::new(TokenType::Number, "3", Literal::Num(3f64), 1),
-                Token::new(TokenType::LeftBrace, "{", Literal::None, 1),
-                Token::new(TokenType::RightBrace, "}", Literal::None, 2),
-                Token::new(TokenType::Eof, "", Literal::None, 2)
+                Token::new(TokenType::If, "if", Literal::Nil, 1),
+                Token::new(TokenType::LeftParen, "(", Literal::Nil, 1),
+                Token::new(TokenType::Identifier, "n1", Literal::Nil, 1),
+                Token::new(TokenType::Plus, "+", Literal::Nil, 1),
+                Token::new(TokenType::Identifier, "n2", Literal::Nil, 1),
+                Token::new(TokenType::RightParen, ")", Literal::Nil, 1),
+                Token::new(TokenType::LessEqual, "<=", Literal::Nil, 1),
+                Token::new(TokenType::Number, "3", Literal::Number(3f64), 1),
+                Token::new(TokenType::LeftBrace, "{", Literal::Nil, 1),
+                Token::new(TokenType::RightBrace, "}", Literal::Nil, 2),
+                Token::new(TokenType::Eof, "", Literal::Nil, 2)
             ]
         );
     }
@@ -303,14 +302,14 @@ mod tests {
     fn scan_token() {
         assert_eq!(
             Scanner::new(SRC_PLUS).scan_token().unwrap(),
-            Some(Token::new(TokenType::Plus, SRC_PLUS, Literal::None, 1))
+            Some(Token::new(TokenType::Plus, SRC_PLUS, Literal::Nil, 1))
         );
         assert_eq!(
             Scanner::new(SRC_BANG_EQUAL).scan_token().unwrap(),
             Some(Token::new(
                 TokenType::BangEqual,
                 SRC_BANG_EQUAL,
-                Literal::None,
+                Literal::Nil,
                 1
             ))
         );
@@ -318,14 +317,14 @@ mod tests {
         assert_eq!(Scanner::new(SRC_COMMENT).scan_token().unwrap(), None);
         assert_eq!(
             Scanner::new(SRC_STASH).scan_token().unwrap(),
-            Some(Token::new(TokenType::Slash, SRC_STASH, Literal::None, 1))
+            Some(Token::new(TokenType::Slash, SRC_STASH, Literal::Nil, 1))
         );
         assert_eq!(
             Scanner::new(SRC_STRING).scan_token().unwrap(),
             Some(Token::new(
                 TokenType::String,
                 SRC_STRING,
-                Literal::Str("string".to_string()),
+                Literal::String("string".to_string()),
                 1
             ))
         );
@@ -334,7 +333,7 @@ mod tests {
             Some(Token::new(
                 TokenType::String,
                 SRC_STRING_WITH_NEWLINE,
-                Literal::Str("string\nstring".to_string()),
+                Literal::String("string\nstring".to_string()),
                 2
             ))
         );
@@ -343,20 +342,20 @@ mod tests {
             Some(Token::new(
                 TokenType::Number,
                 SRC_DECIMAL,
-                Literal::Num(SRC_DECIMAL.parse::<f64>().unwrap()),
+                Literal::Number(SRC_DECIMAL.parse::<f64>().unwrap()),
                 1
             ))
         );
         assert_eq!(
             Scanner::new(SRC_OR).scan_token().unwrap(),
-            Some(Token::new(TokenType::Or, SRC_OR, Literal::None, 1))
+            Some(Token::new(TokenType::Or, SRC_OR, Literal::Nil, 1))
         );
         assert_eq!(
             Scanner::new(SRC_IDENTIFIER).scan_token().unwrap(),
             Some(Token::new(
                 TokenType::Identifier,
                 SRC_IDENTIFIER,
-                Literal::None,
+                Literal::Nil,
                 1
             ))
         );

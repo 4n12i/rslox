@@ -1,21 +1,20 @@
 use core::fmt;
 
-#[allow(dead_code)]
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Clone, Debug, PartialEq, PartialOrd)]
 pub enum Literal {
-    Num(f64),
-    Str(String),
-    Bool(bool),
-    None, // nil
+    Boolean(bool),
+    Number(f64),
+    String(String),
+    Nil,
 }
 
 impl fmt::Display for Literal {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Self::Num(n) => write!(f, "{n}"),
-            Self::Str(s) => write!(f, "{s}"),
-            Self::Bool(b) => write!(f, "{b}"),
-            Self::None => write!(f, "nil"),
+            Self::Number(n) => write!(f, "{n}"),
+            Self::String(s) => write!(f, "{s}"),
+            Self::Boolean(b) => write!(f, "{b}"),
+            Self::Nil => write!(f, "nil"),
         }
     }
 }
