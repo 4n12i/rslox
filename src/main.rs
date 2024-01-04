@@ -4,6 +4,7 @@ use std::env;
 
 mod error;
 mod expr;
+mod interpreter;
 mod literal;
 mod lox;
 mod parser;

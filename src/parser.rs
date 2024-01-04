@@ -24,6 +24,7 @@ impl Parser {
                 info!("{e}");
                 Ok(e)
             }
+            // TODO: Update
             Err(message) => {
                 error!("{message}");
                 bail!("Parse Error")

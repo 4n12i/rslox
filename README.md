@@ -1,5 +1,5 @@
 # rslox
-A `lox` interpreter written in Rust
+Rust implementation of a Lox interpreter  
 
 ## Reference
 [Crafting Interpreters](https://github.com/munificent/craftinginterpreters)
