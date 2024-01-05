@@ -10,31 +10,29 @@ pub enum Expr {
     Unary(Token, Box<Expr>),             // !, -
 }
 
-impl Expr {
-    fn format_ast(&self) -> String {
-        match self {
-            Expr::Binary(left, operator, right) => {
-                format!(
-                    "({} {} {})",
-                    operator.lexeme,
-                    left.format_ast(),
-                    right.format_ast()
-                )
-            }
-            Expr::Grouping(expr) => {
-                format!("(group {})", expr.format_ast())
-            }
-            Expr::Literal(value) => value.to_string(),
-            Expr::Unary(operator, right) => {
-                format!("({} {})", operator.lexeme, right.format_ast())
-            }
-        }
+impl fmt::Display for Expr {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", format_ast(self))
     }
 }
 
-impl fmt::Display for Expr {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.format_ast())
+fn format_ast(expr: &Expr) -> String {
+    match expr {
+        Expr::Binary(left, operator, right) => {
+            format!(
+                "({} {} {})",
+                operator.lexeme,
+                format_ast(left),
+                format_ast(right)
+            )
+        }
+        Expr::Grouping(expr) => {
+            format!("(group {})", format_ast(expr))
+        }
+        Expr::Literal(value) => value.to_string(),
+        Expr::Unary(operator, right) => {
+            format!("({} {})", operator.lexeme, format_ast(right))
+        }
     }
 }
 
@@ -45,7 +43,7 @@ mod tests {
     use super::*;
     #[test]
     fn print_ast() {
-        let e = Expr::format_ast(&Expr::Binary(
+        let e = format_ast(&Expr::Binary(
             Box::new(Expr::Unary(
                 Token::new(TokenType::Minus, "-", Literal::Nil, 1),
                 Box::new(Expr::Literal(Literal::Number(123f64))),

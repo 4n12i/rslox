@@ -6,17 +6,17 @@ use anyhow::bail;
 use anyhow::Result;
 use core::fmt;
 
-impl RuntimeError {
-    fn report(&self, t: &Token) -> String {
-        format!("{}\n[line {}]", self, t.line)
-    }
-}
-
 #[derive(Debug)]
 enum RuntimeError {
     InvalidOperands,
     NonNumericOperand,
     NonNumericOperands,
+}
+
+impl RuntimeError {
+    fn report(&self, t: &Token) -> String {
+        format!("{}\n[line {}]", self, t.line)
+    }
 }
 
 impl fmt::Display for RuntimeError {

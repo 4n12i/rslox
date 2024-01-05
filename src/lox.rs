@@ -25,7 +25,7 @@ pub fn run_prompt() -> Result<()> {
             break;
         }
         if let Err(e) = run(&buffer) {
-            eprintln!("{e}");
+            eprintln!("{e}"); // Reset an error
         }
         buffer.clear();
     }

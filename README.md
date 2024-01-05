@@ -1,7 +1,12 @@
 # rslox
 Rust implementation of a Lox interpreter  
 
-## Log Level Setting
+## Usage
+```sh
+$ cargo run
+```
+
+With debug log: 
 ```sh 
 $ RUST_LOG=debug cargo run
 ```

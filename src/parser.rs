@@ -6,6 +6,12 @@ use anyhow::Result;
 use core::fmt;
 use tracing::debug;
 
+#[derive(Debug)]
+enum ParseError {
+    MissingRightParen,
+    MissingExpression,
+}
+
 impl ParseError {
     fn report(&self, token: &Token) -> String {
         let place = match token.token_type {
@@ -14,12 +20,6 @@ impl ParseError {
         };
         format!("[line {}] Error{}: {}", token.line, place, self)
     }
-}
-
-#[derive(Debug)]
-enum ParseError {
-    MissingRightParen,
-    MissingExpression,
 }
 
 impl fmt::Display for ParseError {
