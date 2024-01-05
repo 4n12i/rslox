@@ -2,7 +2,6 @@ use anyhow::bail;
 use anyhow::Result;
 use std::env;
 
-mod error;
 mod expr;
 mod interpreter;
 mod literal;
@@ -13,7 +12,9 @@ mod token;
 mod token_type;
 
 fn main() -> Result<()> {
-    tracing_subscriber::fmt().init();
+    tracing_subscriber::fmt()
+        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
+        .init();
 
     let args: Vec<String> = env::args().skip(1).collect();
     match args.len() {

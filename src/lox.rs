@@ -24,11 +24,10 @@ pub fn run_prompt() -> Result<()> {
             println!();
             break;
         }
-        let result = run(&buffer);
-        buffer.clear();
-        if result.is_err() {
-            continue; // Reset an error.
+        if let Err(e) = run(&buffer) {
+            eprintln!("{e}");
         }
+        buffer.clear();
     }
 
     Ok(())

@@ -1,15 +1,45 @@
 use crate::expr::Expr;
 use crate::literal::Literal as LoxValue;
+use crate::token::Token;
 use crate::token_type::TokenType;
 use anyhow::bail;
 use anyhow::Result;
+use core::fmt;
+
+impl RuntimeError {
+    fn report(&self, t: &Token) -> String {
+        format!("{}\n[line {}]", self, t.line)
+    }
+}
+
+#[derive(Debug)]
+enum RuntimeError {
+    InvalidOperands,
+    NonNumericOperand,
+    NonNumericOperands,
+}
+
+impl fmt::Display for RuntimeError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::InvalidOperands => write!(f, "Operands must be two numbers or two strings"),
+            Self::NonNumericOperand => write!(f, "Operand must be a number"),
+            Self::NonNumericOperands => write!(f, "Operands must be numbers"),
+        }
+    }
+}
 
 pub struct Interpreter {}
 
 impl Interpreter {
     pub fn run(e: &Expr) -> Result<()> {
-        evaluate(e)?;
-        Ok(())
+        match evaluate(e) {
+            Ok(value) => {
+                println!("{value}");
+                Ok(())
+            }
+            Err(error) => bail!("{error}"),
+        }
     }
 }
 
@@ -25,57 +55,55 @@ fn evaluate(e: &Expr) -> Result<LoxValue> {
                     (LoxValue::Number(n1), LoxValue::Number(n2)) => {
                         Ok(LoxValue::Boolean(n1.gt(&n2)))
                     }
-                    _ => bail!("Operands must be numbers"),
+                    _ => bail!(RuntimeError::NonNumericOperands.report(operator)),
                 },
                 TokenType::GreaterEqual => match (left, right) {
                     (LoxValue::Number(n1), LoxValue::Number(n2)) => {
                         Ok(LoxValue::Boolean(n1.ge(&n2)))
                     }
-                    _ => bail!("Operands must be numbers"),
+                    _ => bail!(RuntimeError::NonNumericOperands.report(operator)),
                 },
                 TokenType::Less => match (left, right) {
                     (LoxValue::Number(n1), LoxValue::Number(n2)) => {
                         Ok(LoxValue::Boolean(n1.lt(&n2)))
                     }
-                    _ => bail!("Operands must be numbers"),
+                    _ => bail!(RuntimeError::NonNumericOperands.report(operator)),
                 },
                 TokenType::LessEqual => match (left, right) {
                     (LoxValue::Number(n1), LoxValue::Number(n2)) => {
                         Ok(LoxValue::Boolean(n1.le(&n2)))
                     }
-                    _ => bail!("Operands must be numbers"),
+                    _ => bail!(RuntimeError::NonNumericOperands.report(operator)),
                 },
                 TokenType::Minus => match (left, right) {
                     (LoxValue::Number(n1), LoxValue::Number(n2)) => Ok(LoxValue::Number(n1 - n2)),
                     _ => bail!("Operands must be numbers"),
                 },
                 TokenType::Plus => match (left, right) {
-                    (LoxValue::Number(n1), LoxValue::Number(n2)) => Ok(LoxValue::Number(n1 - n2)),
+                    (LoxValue::Number(n1), LoxValue::Number(n2)) => Ok(LoxValue::Number(n1 + n2)),
                     (LoxValue::String(s1), LoxValue::String(s2)) => Ok(LoxValue::String(s1 + &s2)),
-                    _ => bail!("Operands must be two numbers or two strings"),
+                    _ => bail!(RuntimeError::InvalidOperands.report(operator)),
                 },
                 TokenType::Slash => match (left, right) {
                     (LoxValue::Number(n1), LoxValue::Number(n2)) => Ok(LoxValue::Number(n1 / n2)),
-                    _ => bail!("Operands must be numbers"),
+                    _ => bail!(RuntimeError::NonNumericOperands.report(operator)),
                 },
                 TokenType::Star => match (left, right) {
                     (LoxValue::Number(n1), LoxValue::Number(n2)) => Ok(LoxValue::Number(n1 * n2)),
-                    _ => bail!("Operands must be numbers"),
+                    _ => bail!(RuntimeError::NonNumericOperands.report(operator)),
                 },
                 _ => bail!("Error"),
             }
         }
         Expr::Grouping(expr) => evaluate(expr),
-        Expr::Literal(_value) => {
-            bail!("Unimplemented") // Ok(value)
-        }
+        Expr::Literal(value) => Ok(value.clone()),
         Expr::Unary(operator, right) => {
             let right = evaluate(right)?;
             match operator.token_type {
                 TokenType::Bang => Ok(LoxValue::Boolean(!is_truthy(right))),
                 TokenType::Minus => match right {
                     LoxValue::Number(n) => Ok(LoxValue::Number(-n)),
-                    _ => bail!("Operand must be a number"),
+                    _ => bail!(RuntimeError::NonNumericOperand.report(operator)),
                 },
                 _ => bail!("Error"),
             }

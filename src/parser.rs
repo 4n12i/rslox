@@ -1,11 +1,35 @@
-use crate::error::get_parse_error;
 use crate::expr::Expr;
 use crate::token::Token;
 use crate::token_type::TokenType;
 use anyhow::bail;
 use anyhow::Result;
-use tracing::error;
-use tracing::info;
+use core::fmt;
+use tracing::debug;
+
+impl ParseError {
+    fn report(&self, token: &Token) -> String {
+        let place = match token.token_type {
+            TokenType::Eof => " at end".to_string(),
+            _ => format!(" at '{}'", token.lexeme),
+        };
+        format!("[line {}] Error{}: {}", token.line, place, self)
+    }
+}
+
+#[derive(Debug)]
+enum ParseError {
+    MissingRightParen,
+    MissingExpression,
+}
+
+impl fmt::Display for ParseError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::MissingRightParen => write!(f, "Expect ')' after expression"),
+            Self::MissingExpression => write!(f, "Expect expression"),
+        }
+    }
+}
 
 pub struct Parser {
     tokens: Vec<Token>,
@@ -20,15 +44,10 @@ impl Parser {
     pub fn run(&mut self) -> Result<Expr> {
         match self.expression() {
             Ok(expr) => {
-                let e = *expr;
-                info!("{e}");
-                Ok(e)
+                debug!("{expr}");
+                Ok(*expr)
             }
-            // TODO: Update
-            Err(message) => {
-                error!("{message}");
-                bail!("Parse Error")
-            }
+            Err(error) => bail!("{error}"),
         }
     }
 
@@ -125,10 +144,10 @@ impl Parser {
             TokenType::LeftParen => {
                 self.advance();
                 let expr = self.expression()?;
-                self.consume(TokenType::RightParen, "Expect ')' after expression")?;
+                self.consume(TokenType::RightParen, ParseError::MissingRightParen)?;
                 Ok(Expr::Grouping(expr))
             }
-            _ => bail!(get_parse_error(self.peek(), "Expect expression")),
+            _ => bail!(ParseError::MissingExpression.report(self.peek())),
         }
     }
 
@@ -140,12 +159,12 @@ impl Parser {
         false
     }
 
-    fn consume(&mut self, token_type: TokenType, message: &str) -> Result<&Token> {
+    fn consume(&mut self, token_type: TokenType, message: ParseError) -> Result<&Token> {
         if self.check(&token_type) {
             return Ok(self.advance());
         }
 
-        bail!("{}", get_parse_error(self.peek(), message))
+        bail!(message.report(self.peek()))
     }
 
     fn check(&mut self, token_type: &TokenType) -> bool {

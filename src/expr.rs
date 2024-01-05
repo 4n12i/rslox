@@ -1,6 +1,5 @@
 use crate::literal::Literal;
 use crate::token::Token;
-use anyhow::Result;
 use core::fmt;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -12,32 +11,30 @@ pub enum Expr {
 }
 
 impl Expr {
-    fn format_ast(e: &Expr) -> Result<String> {
-        let s = match e {
+    fn format_ast(&self) -> String {
+        match self {
             Expr::Binary(left, operator, right) => {
                 format!(
                     "({} {} {})",
                     operator.lexeme,
-                    Self::format_ast(left)?,
-                    Self::format_ast(right)?
+                    left.format_ast(),
+                    right.format_ast()
                 )
             }
             Expr::Grouping(expr) => {
-                format!("(group {})", Self::format_ast(expr)?)
+                format!("(group {})", expr.format_ast())
             }
             Expr::Literal(value) => value.to_string(),
             Expr::Unary(operator, right) => {
-                format!("({} {})", operator.lexeme, Self::format_ast(right)?)
+                format!("({} {})", operator.lexeme, right.format_ast())
             }
-        };
-
-        Ok(s)
+        }
     }
 }
 
 impl fmt::Display for Expr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", Self::format_ast(self).unwrap())
+        write!(f, "{}", self.format_ast())
     }
 }
 
@@ -58,7 +55,6 @@ mod tests {
                 45.67f64,
             ))))),
         ));
-        assert!(e.is_ok());
-        println!("{}", e.unwrap());
+        println!("{e}");
     }
 }

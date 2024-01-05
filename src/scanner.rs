@@ -1,13 +1,12 @@
-use crate::error::ErrorType;
 use crate::literal::Literal;
 use crate::token::Token;
 use crate::token_type::TokenType;
 use anyhow::bail;
 use anyhow::Result;
+use core::fmt;
 use once_cell::sync::Lazy;
 use std::collections::HashMap;
-use tracing::error;
-use tracing::info;
+use tracing::debug;
 
 static KEYWORDS: Lazy<HashMap<&'static str, TokenType>> = Lazy::new(|| {
     HashMap::from([
@@ -29,6 +28,27 @@ static KEYWORDS: Lazy<HashMap<&'static str, TokenType>> = Lazy::new(|| {
         ("while", TokenType::While),
     ])
 });
+
+#[derive(Debug)]
+enum ScanError {
+    UnexpectedChar,
+    UnterminatedStr,
+}
+
+impl ScanError {
+    fn report(&self, line: usize) -> String {
+        format!("[line {}] Error: {}", line, self)
+    }
+}
+
+impl fmt::Display for ScanError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::UnexpectedChar => write!(f, "Unexpected character"),
+            Self::UnterminatedStr => write!(f, "Unterminated string"),
+        }
+    }
+}
 
 #[derive(Debug)]
 pub struct Scanner {
@@ -59,12 +79,10 @@ impl Scanner {
             self.start = self.current;
             match self.scan_token() {
                 Ok(Some(t)) => {
-                    info!("{t}");
+                    debug!("{t}");
                     tokens.push(t);
                 }
-                Err(e) => {
-                    error!("{e}");
-                }
+                Err(e) => bail!("{e}"),
                 _ => (),
             }
         }
@@ -131,7 +149,7 @@ impl Scanner {
                     let t = self.get_identifier()?;
                     self.create_token(t)?
                 } else {
-                    bail!(ErrorType::Lexical { line: self.line })
+                    bail!(ScanError::UnexpectedChar.report(self.line))
                 }
             }
         };
@@ -176,7 +194,7 @@ impl Scanner {
         }
 
         if self.is_at_end() {
-            bail!(ErrorType::StringEnd { line: self.line });
+            bail!(ScanError::UnterminatedStr.report(self.line));
         }
 
         // The closing `"`.
