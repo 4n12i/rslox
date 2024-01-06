@@ -1,5 +1,6 @@
 use crate::expr::Expr;
 use crate::literal::Literal as LoxValue;
+use crate::stmt::Stmt;
 use crate::token::Token;
 use crate::token_type::TokenType;
 use anyhow::bail;
@@ -32,8 +33,8 @@ impl fmt::Display for RuntimeError {
 pub struct Interpreter {}
 
 impl Interpreter {
-    pub fn run(e: &Expr) -> Result<()> {
-        match evaluate(e) {
+    pub fn _run(expr: &Expr) -> Result<()> {
+        match evaluate(expr) {
             Ok(value) => {
                 println!("{value}");
                 Ok(())
@@ -41,10 +42,17 @@ impl Interpreter {
             Err(error) => bail!("{error}"),
         }
     }
+
+    pub fn run(statements: &[Stmt]) -> Result<()> {
+        for statement in statements {
+            execute(statement)?;
+        }
+        Ok(())
+    }
 }
 
-fn evaluate(e: &Expr) -> Result<LoxValue> {
-    match e {
+fn evaluate(expr: &Expr) -> Result<LoxValue> {
+    match expr {
         Expr::Binary(left, operator, right) => {
             let left = evaluate(left)?;
             let right = evaluate(right)?;
@@ -109,6 +117,18 @@ fn evaluate(e: &Expr) -> Result<LoxValue> {
             }
         }
     }
+}
+
+fn execute(stmt: &Stmt) -> Result<()> {
+    match stmt {
+        Stmt::Expression(e) => {
+            evaluate(e)?;
+        }
+        Stmt::Print(e) => {
+            println!("{}", evaluate(e)?);
+        }
+    }
+    Ok(())
 }
 
 /// Only false and nil are falsey, everything else is truthy

@@ -8,6 +8,7 @@ mod literal;
 mod lox;
 mod parser;
 mod scanner;
+mod stmt;
 mod token;
 mod token_type;
 

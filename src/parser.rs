@@ -1,4 +1,5 @@
 use crate::expr::Expr;
+use crate::stmt::Stmt;
 use crate::token::Token;
 use crate::token_type::TokenType;
 use anyhow::bail;
@@ -8,8 +9,10 @@ use tracing::debug;
 
 #[derive(Debug)]
 enum ParseError {
-    MissingRightParen,
-    MissingExpression,
+    Expr,
+    RightParen,
+    SemicolonAfterExpr,
+    SemicolonAfterValue,
 }
 
 impl ParseError {
@@ -25,8 +28,10 @@ impl ParseError {
 impl fmt::Display for ParseError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::MissingRightParen => write!(f, "Expect ')' after expression"),
-            Self::MissingExpression => write!(f, "Expect expression"),
+            Self::Expr => write!(f, "Expect expression"),
+            Self::RightParen => write!(f, "Expect ')' after expression"),
+            Self::SemicolonAfterExpr => write!(f, "Expect ';' after expression"),
+            Self::SemicolonAfterValue => write!(f, "Expect ';' after value"),
         }
     }
 }
@@ -41,7 +46,7 @@ impl Parser {
         Parser { tokens, current: 0 }
     }
 
-    pub fn run(&mut self) -> Result<Expr> {
+    pub fn _run(&mut self) -> Result<Expr> {
         match self.expression() {
             Ok(expr) => {
                 debug!("{expr}");
@@ -51,9 +56,43 @@ impl Parser {
         }
     }
 
+    pub fn run(&mut self) -> Result<Vec<Stmt>> {
+        let mut statements = Vec::new();
+
+        while !self.is_at_end() {
+            statements.push(self.statement()?);
+        }
+
+        Ok(statements)
+    }
+
     /// Rule: equality ;
     fn expression(&mut self) -> Result<Box<Expr>> {
         self.equality()
+    }
+
+    /// Rule: expr_stmt | print_stmt ;
+    fn statement(&mut self) -> Result<Stmt> {
+        if self.is_match(&[TokenType::Print]) {
+            return self.print_statement();
+        }
+        self.expression_statement()
+    }
+
+    /// Rule: "print" expression ";" ;
+    fn print_statement(&mut self) -> Result<Stmt> {
+        let value = self.expression()?;
+        debug!("{value}");
+        self.consume(TokenType::Semicolon, ParseError::SemicolonAfterValue)?;
+        Ok(Stmt::Print(value))
+    }
+
+    /// Rule: expression ";" ;
+    fn expression_statement(&mut self) -> Result<Stmt> {
+        let expr = self.expression()?;
+        debug!("{expr}");
+        self.consume(TokenType::Semicolon, ParseError::SemicolonAfterExpr)?;
+        Ok(Stmt::Expression(expr))
     }
 
     /// Rule: comparison ( ( "!=" | "==" ) comparison )* ;
@@ -144,10 +183,10 @@ impl Parser {
             TokenType::LeftParen => {
                 self.advance();
                 let expr = self.expression()?;
-                self.consume(TokenType::RightParen, ParseError::MissingRightParen)?;
+                self.consume(TokenType::RightParen, ParseError::RightParen)?;
                 Ok(Expr::Grouping(expr))
             }
-            _ => bail!(ParseError::MissingExpression.report(self.peek())),
+            _ => bail!(ParseError::Expr.report(self.peek())),
         }
     }
 

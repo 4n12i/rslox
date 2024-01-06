@@ -59,7 +59,6 @@ pub struct Scanner {
     line: usize,
 }
 
-#[allow(dead_code)]
 impl Scanner {
     pub fn new(source: &str) -> Self {
         Scanner {

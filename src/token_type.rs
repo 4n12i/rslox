@@ -1,4 +1,3 @@
-#[allow(dead_code)]
 #[derive(Clone, Debug, PartialEq)]
 pub enum TokenType {
     // Token with 1 symbol

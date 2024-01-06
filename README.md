@@ -11,6 +11,18 @@ With debug log:
 $ RUST_LOG=debug cargo run
 ```
 
+## Implementation
+- [x] Scanning 
+- [x] Representing Code
+- [x] Parsing Expressions
+- [x] Evaluating Expressions
+- [ ] Statements and State
+- [ ] Control Flow
+- [ ] Functions
+- [ ] Resolving and Binding
+- [ ] Classes
+- [ ] Inheritance
+
 ## Reference
 [Crafting Interpreters](https://github.com/munificent/craftinginterpreters)
 

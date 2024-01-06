@@ -35,8 +35,10 @@ pub fn run_prompt() -> Result<()> {
 
 fn run(source: &str) -> Result<()> {
     let tokens = Scanner::new(source).run()?;
-    let expr = Parser::new(tokens).run()?;
-    Interpreter::run(&expr)?;
+    // let expr = Parser::new(tokens).run()?;
+    // Interpreter::run(&expr)?;
+    let stmt = Parser::new(tokens).run()?;
+    Interpreter::run(&stmt)?;
 
     Ok(())
 }
