@@ -8,37 +8,49 @@ use std::io::BufRead;
 use std::io::Write;
 use std::io::{self};
 
-pub fn run_file(path: &str) -> Result<()> {
-    let src = fs::read_to_string(path).context("Failed to read a source file")?;
-    run(&src)
+pub struct Lox {
+    interpreter: Interpreter,
 }
 
-pub fn run_prompt() -> Result<()> {
-    let mut buffer = String::new();
-    let mut handle = io::stdin().lock();
-
-    loop {
-        print!("> ");
-        io::stdout().flush()?;
-        if let Ok(0) = handle.read_line(&mut buffer) {
-            println!();
-            break;
+impl Lox {
+    fn new() -> Self {
+        Self {
+            interpreter: Interpreter::new(),
         }
-        if let Err(e) = run(&buffer) {
-            eprintln!("{e}"); // Reset an error
-        }
-        buffer.clear();
     }
 
-    Ok(())
-}
+    pub fn run_file(path: &str) -> Result<()> {
+        let mut lox = Self::new();
+        let src = fs::read_to_string(path).context("Failed to read a source file")?;
+        lox.run(&src)
+    }
 
-fn run(source: &str) -> Result<()> {
-    let tokens = Scanner::new(source).run()?;
-    // let expr = Parser::new(tokens).run()?;
-    // Interpreter::run(&expr)?;
-    let stmt = Parser::new(tokens).run()?;
-    Interpreter::run(&stmt)?;
+    pub fn run_prompt() -> Result<()> {
+        let mut lox = Self::new();
+        let mut handle = io::stdin().lock();
+        let mut buffer = String::new();
 
-    Ok(())
+        loop {
+            print!("> ");
+            io::stdout().flush()?;
+            if let Ok(0) = handle.read_line(&mut buffer) {
+                println!();
+                break;
+            }
+            if let Err(e) = lox.run(&buffer) {
+                eprintln!("{e}"); // Reset an error
+            }
+            buffer.clear();
+        }
+
+        Ok(())
+    }
+
+    fn run(&mut self, source: &str) -> Result<()> {
+        let tokens = Scanner::new(source).run()?;
+        let stmts = Parser::new(tokens).run()?;
+        self.interpreter.run(&stmts)?;
+
+        Ok(())
+    }
 }

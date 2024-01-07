@@ -4,10 +4,11 @@ use core::fmt;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Expr {
-    Binary(Box<Expr>, Token, Box<Expr>), // +, -, *, /, ==, !=, <, <=, >, >=
-    Grouping(Box<Expr>),                 // ( and )
-    Literal(Literal),                    // number, string, boolean, nil
-    Unary(Token, Box<Expr>),             // !, -
+    Binary(Box<Expr>, Token, Box<Expr>),
+    Grouping(Box<Expr>),
+    Literal(Literal),
+    Unary(Token, Box<Expr>),
+    Variable(Token),
 }
 
 impl fmt::Display for Expr {
@@ -33,6 +34,7 @@ fn format_ast(expr: &Expr) -> String {
         Expr::Unary(operator, right) => {
             format!("({} {})", operator.lexeme, format_ast(right))
         }
+        Expr::Variable(name) => name.lexeme.clone(),
     }
 }
 

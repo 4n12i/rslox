@@ -1,3 +1,4 @@
+use crate::environment::Environment;
 use crate::expr::Expr;
 use crate::literal::Literal as LoxValue;
 use crate::stmt::Stmt;
@@ -30,108 +31,136 @@ impl fmt::Display for RuntimeError {
     }
 }
 
-pub struct Interpreter {}
+pub struct Interpreter {
+    environment: Environment,
+}
 
 impl Interpreter {
-    pub fn _run(expr: &Expr) -> Result<()> {
-        match evaluate(expr) {
-            Ok(value) => {
-                println!("{value}");
-                Ok(())
-            }
-            Err(error) => bail!("{error}"),
+    pub fn new() -> Self {
+        Self {
+            environment: Environment::new(),
         }
     }
 
-    pub fn run(statements: &[Stmt]) -> Result<()> {
+    // pub fn run(expr: &Expr) -> Result<()> {
+    //     match evaluate(expr) {
+    //         Ok(value) => {
+    //             println!("{value}");
+    //             Ok(())
+    //         }
+    //         Err(error) => bail!("{error}"),
+    //     }
+    // }
+
+    pub fn run(&mut self, statements: &[Stmt]) -> Result<()> {
         for statement in statements {
-            execute(statement)?;
+            self.execute(statement)?;
         }
         Ok(())
     }
 }
 
-fn evaluate(expr: &Expr) -> Result<LoxValue> {
-    match expr {
-        Expr::Binary(left, operator, right) => {
-            let left = evaluate(left)?;
-            let right = evaluate(right)?;
-            match operator.token_type {
-                TokenType::BangEqual => Ok(LoxValue::Boolean(left.ne(&right))),
-                TokenType::EqualEqual => Ok(LoxValue::Boolean(left.eq(&right))),
-                TokenType::Greater => match (left, right) {
-                    (LoxValue::Number(n1), LoxValue::Number(n2)) => {
-                        Ok(LoxValue::Boolean(n1.gt(&n2)))
-                    }
-                    _ => bail!(RuntimeError::NonNumericOperands.report(operator)),
-                },
-                TokenType::GreaterEqual => match (left, right) {
-                    (LoxValue::Number(n1), LoxValue::Number(n2)) => {
-                        Ok(LoxValue::Boolean(n1.ge(&n2)))
-                    }
-                    _ => bail!(RuntimeError::NonNumericOperands.report(operator)),
-                },
-                TokenType::Less => match (left, right) {
-                    (LoxValue::Number(n1), LoxValue::Number(n2)) => {
-                        Ok(LoxValue::Boolean(n1.lt(&n2)))
-                    }
-                    _ => bail!(RuntimeError::NonNumericOperands.report(operator)),
-                },
-                TokenType::LessEqual => match (left, right) {
-                    (LoxValue::Number(n1), LoxValue::Number(n2)) => {
-                        Ok(LoxValue::Boolean(n1.le(&n2)))
-                    }
-                    _ => bail!(RuntimeError::NonNumericOperands.report(operator)),
-                },
-                TokenType::Minus => match (left, right) {
-                    (LoxValue::Number(n1), LoxValue::Number(n2)) => Ok(LoxValue::Number(n1 - n2)),
-                    _ => bail!("Operands must be numbers"),
-                },
-                TokenType::Plus => match (left, right) {
-                    (LoxValue::Number(n1), LoxValue::Number(n2)) => Ok(LoxValue::Number(n1 + n2)),
-                    (LoxValue::String(s1), LoxValue::String(s2)) => Ok(LoxValue::String(s1 + &s2)),
-                    _ => bail!(RuntimeError::InvalidOperands.report(operator)),
-                },
-                TokenType::Slash => match (left, right) {
-                    (LoxValue::Number(n1), LoxValue::Number(n2)) => Ok(LoxValue::Number(n1 / n2)),
-                    _ => bail!(RuntimeError::NonNumericOperands.report(operator)),
-                },
-                TokenType::Star => match (left, right) {
-                    (LoxValue::Number(n1), LoxValue::Number(n2)) => Ok(LoxValue::Number(n1 * n2)),
-                    _ => bail!(RuntimeError::NonNumericOperands.report(operator)),
-                },
-                _ => bail!("Error"),
+impl Interpreter {
+    fn evaluate(&mut self, expr: &Expr) -> Result<LoxValue> {
+        match expr {
+            Expr::Binary(left, operator, right) => {
+                let left = self.evaluate(left)?;
+                let right = self.evaluate(right)?;
+                match operator.token_type {
+                    TokenType::BangEqual => Ok(LoxValue::Boolean(left.ne(&right))),
+                    TokenType::EqualEqual => Ok(LoxValue::Boolean(left.eq(&right))),
+                    TokenType::Greater => match (left, right) {
+                        (LoxValue::Number(n1), LoxValue::Number(n2)) => {
+                            Ok(LoxValue::Boolean(n1.gt(&n2)))
+                        }
+                        _ => bail!(RuntimeError::NonNumericOperands.report(operator)),
+                    },
+                    TokenType::GreaterEqual => match (left, right) {
+                        (LoxValue::Number(n1), LoxValue::Number(n2)) => {
+                            Ok(LoxValue::Boolean(n1.ge(&n2)))
+                        }
+                        _ => bail!(RuntimeError::NonNumericOperands.report(operator)),
+                    },
+                    TokenType::Less => match (left, right) {
+                        (LoxValue::Number(n1), LoxValue::Number(n2)) => {
+                            Ok(LoxValue::Boolean(n1.lt(&n2)))
+                        }
+                        _ => bail!(RuntimeError::NonNumericOperands.report(operator)),
+                    },
+                    TokenType::LessEqual => match (left, right) {
+                        (LoxValue::Number(n1), LoxValue::Number(n2)) => {
+                            Ok(LoxValue::Boolean(n1.le(&n2)))
+                        }
+                        _ => bail!(RuntimeError::NonNumericOperands.report(operator)),
+                    },
+                    TokenType::Minus => match (left, right) {
+                        (LoxValue::Number(n1), LoxValue::Number(n2)) => {
+                            Ok(LoxValue::Number(n1 - n2))
+                        }
+                        _ => bail!("Operands must be numbers"),
+                    },
+                    TokenType::Plus => match (left, right) {
+                        (LoxValue::Number(n1), LoxValue::Number(n2)) => {
+                            Ok(LoxValue::Number(n1 + n2))
+                        }
+                        (LoxValue::String(s1), LoxValue::String(s2)) => {
+                            Ok(LoxValue::String(s1 + &s2))
+                        }
+                        _ => bail!(RuntimeError::InvalidOperands.report(operator)),
+                    },
+                    TokenType::Slash => match (left, right) {
+                        (LoxValue::Number(n1), LoxValue::Number(n2)) => {
+                            Ok(LoxValue::Number(n1 / n2))
+                        }
+                        _ => bail!(RuntimeError::NonNumericOperands.report(operator)),
+                    },
+                    TokenType::Star => match (left, right) {
+                        (LoxValue::Number(n1), LoxValue::Number(n2)) => {
+                            Ok(LoxValue::Number(n1 * n2))
+                        }
+                        _ => bail!(RuntimeError::NonNumericOperands.report(operator)),
+                    },
+                    _ => bail!("Error"), // Unreachable
+                }
+            }
+            Expr::Grouping(expr) => self.evaluate(expr),
+            Expr::Literal(value) => Ok(value.clone()),
+            Expr::Unary(operator, right) => {
+                let right = self.evaluate(right)?;
+                match operator.token_type {
+                    TokenType::Bang => Ok(LoxValue::Boolean(!is_truthy(right))),
+                    TokenType::Minus => match right {
+                        LoxValue::Number(n) => Ok(LoxValue::Number(-n)),
+                        _ => bail!(RuntimeError::NonNumericOperand.report(operator)),
+                    },
+                    _ => bail!("Error"), // Unreachable
+                }
+            }
+            Expr::Variable(token) => self.environment.get(token),
+        }
+    }
+
+    fn execute(&mut self, stmt: &Stmt) -> Result<()> {
+        match stmt {
+            Stmt::Expression(expr) => {
+                self.evaluate(expr)?;
+            }
+            Stmt::Print(expr) => {
+                println!("{}", self.evaluate(expr)?);
+            }
+            Stmt::Var(token, expr) => {
+                let value = match expr {
+                    Some(initializer) => self.evaluate(initializer)?,
+                    None => LoxValue::Nil,
+                };
+                self.environment.define(&token.lexeme, &value)?;
             }
         }
-        Expr::Grouping(expr) => evaluate(expr),
-        Expr::Literal(value) => Ok(value.clone()),
-        Expr::Unary(operator, right) => {
-            let right = evaluate(right)?;
-            match operator.token_type {
-                TokenType::Bang => Ok(LoxValue::Boolean(!is_truthy(right))),
-                TokenType::Minus => match right {
-                    LoxValue::Number(n) => Ok(LoxValue::Number(-n)),
-                    _ => bail!(RuntimeError::NonNumericOperand.report(operator)),
-                },
-                _ => bail!("Error"),
-            }
-        }
+        Ok(())
     }
 }
 
-fn execute(stmt: &Stmt) -> Result<()> {
-    match stmt {
-        Stmt::Expression(e) => {
-            evaluate(e)?;
-        }
-        Stmt::Print(e) => {
-            println!("{}", evaluate(e)?);
-        }
-    }
-    Ok(())
-}
-
-/// Only false and nil are falsey, everything else is truthy
+// Only false and nil are falsey, everything else is truthy
 fn is_truthy(object: LoxValue) -> bool {
     match object {
         LoxValue::Boolean(b) => b,
