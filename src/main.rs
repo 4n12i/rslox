@@ -1,18 +1,9 @@
+extern crate rslox;
+
 use anyhow::bail;
 use anyhow::Result;
-use lox::Lox;
+use rslox::lox::Lox;
 use std::env;
-
-mod environment;
-mod expr;
-mod interpreter;
-mod literal;
-mod lox;
-mod parser;
-mod scanner;
-mod stmt;
-mod token;
-mod token_type;
 
 fn main() -> Result<()> {
     tracing_subscriber::fmt()

@@ -235,7 +235,7 @@ impl Scanner {
     }
 
     fn peek_two_ahead(&mut self) -> Result<char> {
-        if self.is_at_end() {
+        if self.current + 1 >= self.source.len() {
             return Ok('\0');
         }
         Ok(self.chars[self.current + 1])

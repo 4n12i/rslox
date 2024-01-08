@@ -16,7 +16,7 @@ $ RUST_LOG=debug cargo run
 - [x] Representing Code
 - [x] Parsing Expressions
 - [x] Evaluating Expressions
-- [ ] Statements and State
+- [x] Statements and State
 - [ ] Control Flow
 - [ ] Functions
 - [ ] Resolving and Binding
