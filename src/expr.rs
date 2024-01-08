@@ -4,6 +4,7 @@ use core::fmt;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Expr {
+    Assign(Token, Box<Expr>),
     Binary(Box<Expr>, Token, Box<Expr>),
     Grouping(Box<Expr>),
     Literal(Literal),
@@ -19,6 +20,9 @@ impl fmt::Display for Expr {
 
 fn format_ast(expr: &Expr) -> String {
     match expr {
+        Expr::Assign(name, value) => {
+            format!("(= {} {})", name.lexeme, value)
+        }
         Expr::Binary(left, operator, right) => {
             format!(
                 "({} {} {})",

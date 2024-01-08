@@ -26,4 +26,12 @@ impl Environment {
             None => bail!("Undefined variable '{}'", name.lexeme),
         }
     }
+
+    pub fn assign(&mut self, name: &Token, value: &LoxValue) -> Result<()> {
+        if self.values.contains_key(&name.lexeme) {
+            self.values.insert(name.lexeme.clone(), value.clone());
+            return Ok(());
+        }
+        bail!("Undefined variable '{}'", name.lexeme)
+    }
 }

@@ -7,6 +7,7 @@ use std::fs;
 use std::io::BufRead;
 use std::io::Write;
 use std::io::{self};
+use std::process::exit;
 
 pub struct Lox {
     interpreter: Interpreter,
@@ -22,7 +23,11 @@ impl Lox {
     pub fn run_file(path: &str) -> Result<()> {
         let mut lox = Self::new();
         let src = fs::read_to_string(path).context("Failed to read a source file")?;
-        lox.run(&src)
+        if let Err(e) = lox.run(&src) {
+            eprintln!("{e}");
+            exit(1)
+        }
+        Ok(())
     }
 
     pub fn run_prompt() -> Result<()> {

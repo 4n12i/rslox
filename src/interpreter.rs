@@ -63,6 +63,11 @@ impl Interpreter {
 impl Interpreter {
     fn evaluate(&mut self, expr: &Expr) -> Result<LoxValue> {
         match expr {
+            Expr::Assign(name, value) => {
+                let value = self.evaluate(value)?;
+                self.environment.assign(name, &value)?;
+                Ok(value)
+            }
             Expr::Binary(left, operator, right) => {
                 let left = self.evaluate(left)?;
                 let right = self.evaluate(right)?;
