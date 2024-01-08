@@ -4,6 +4,7 @@ use core::fmt;
 
 #[derive(Debug)]
 pub enum Stmt {
+    Block(Vec<Stmt>),
     Expression(Box<Expr>),
     Print(Box<Expr>),
     Var(Token, Option<Box<Expr>>),
@@ -17,6 +18,13 @@ impl fmt::Display for Stmt {
 
 fn format_ast(stmt: &Stmt) -> String {
     match stmt {
+        Stmt::Block(stmts) => {
+            let mut decls = vec![];
+            for stmt in stmts {
+                decls.push(format_ast(stmt));
+            }
+            format!("(block {})", decls.join(" "))
+        }
         Stmt::Expression(expr) => format!("(; {})", expr),
         Stmt::Print(value) => format!("(print {})", value),
         Stmt::Var(name, initializer) => match initializer {

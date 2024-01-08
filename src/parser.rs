@@ -15,6 +15,7 @@ enum ParseError {
     SemicolonAfterValue,
     VariableName,
     SemicolonAfterVarDecl,
+    Block,
 }
 
 impl ParseError {
@@ -38,12 +39,13 @@ fn report(token: &Token, message: &str) -> String {
 impl fmt::Display for ParseError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Expr => write!(f, "Expect expression"),
-            Self::RightParen => write!(f, "Expect ')' after expression"),
-            Self::SemicolonAfterExpr => write!(f, "Expect ';' after expression"),
-            Self::SemicolonAfterValue => write!(f, "Expect ';' after value"),
-            Self::VariableName => write!(f, "Expect variable name"),
-            Self::SemicolonAfterVarDecl => write!(f, "Expect ';' after variable declaration"),
+            Self::Expr => write!(f, "Expect expression."),
+            Self::RightParen => write!(f, "Expect ')' after expression."),
+            Self::SemicolonAfterExpr => write!(f, "Expect ';' after expression."),
+            Self::SemicolonAfterValue => write!(f, "Expect ';' after value."),
+            Self::VariableName => write!(f, "Expect variable name."),
+            Self::SemicolonAfterVarDecl => write!(f, "Expect ';' after variable declaration."),
+            Self::Block => write!(f, "Expect '}}' after block."),
         }
     }
 }
@@ -102,10 +104,13 @@ impl Parser {
         }
     }
 
-    // statement -> expr_stmt | print_stmt ;
+    // statement -> expr_stmt | print_stmt | block ;
     fn statement(&mut self) -> Result<Stmt> {
         if self.is_match(&[TokenType::Print]) {
             return self.print_statement();
+        }
+        if self.is_match(&[TokenType::LeftBrace]) {
+            return self.block();
         }
         self.expression_statement()
     }
@@ -137,6 +142,18 @@ impl Parser {
         let expr = self.expression()?;
         self.consume(TokenType::Semicolon, ParseError::SemicolonAfterExpr)?;
         Ok(Stmt::Expression(expr))
+    }
+
+    // block -> "{" declaration* "}" ;
+    fn block(&mut self) -> Result<Stmt> {
+        let mut statements = Vec::new();
+
+        while !self.check(TokenType::RightBrace) && !self.is_at_end() {
+            statements.push(self.declaration()?);
+        }
+
+        self.consume(TokenType::RightBrace, ParseError::Block)?;
+        Ok(Stmt::Block(statements))
     }
 
     // assignment -> identifier "=" assignment | equality ;
@@ -249,6 +266,21 @@ impl Parser {
         }
     }
 
+    fn consume(&mut self, token_type: TokenType, message: ParseError) -> Result<&Token> {
+        if self.peek().token_type == token_type {
+            return Ok(self.advance());
+        }
+        bail!(message.report(self.peek()))
+    }
+
+    // TODO: Change
+    fn _consume(&mut self, token_type: TokenType, message: &str) -> Result<&Token> {
+        if self.peek().token_type == token_type {
+            return Ok(self.advance());
+        }
+        bail!(report(self.peek(), message))
+    }
+
     fn is_match(&mut self, token_types: &[TokenType]) -> bool {
         if token_types.contains(&self.peek().token_type) && !self.is_at_end() {
             self.advance();
@@ -257,11 +289,13 @@ impl Parser {
         false
     }
 
-    fn consume(&mut self, token_type: TokenType, message: ParseError) -> Result<&Token> {
-        if self.peek().token_type == token_type {
-            return Ok(self.advance());
-        }
-        bail!(message.report(self.peek()))
+    // TODO: Change
+    fn _is_match(&self, token_types: &[TokenType]) -> bool {
+        token_types.contains(&self.peek().token_type)
+    }
+
+    fn check(&self, token_type: TokenType) -> bool {
+        self.peek().token_type == token_type
     }
 
     // Consume the current token and return it.
@@ -272,11 +306,6 @@ impl Parser {
         self.previous()
     }
 
-    // Check if the token list has been parsed to the end.
-    fn is_at_end(&self) -> bool {
-        self.peek().token_type == TokenType::Eof
-    }
-
     // Return the current token not yet consumed.
     fn peek(&self) -> &Token {
         &self.tokens[self.current]
@@ -285,6 +314,11 @@ impl Parser {
     // Return the last token consumed.
     fn previous(&self) -> &Token {
         &self.tokens[self.current - 1]
+    }
+
+    // Check if the token list has been parsed to the end.
+    fn is_at_end(&self) -> bool {
+        self.peek().token_type == TokenType::Eof
     }
 
     fn synchronize(&mut self) -> Result<()> {

@@ -38,7 +38,7 @@ pub struct Interpreter {
 impl Interpreter {
     pub fn new() -> Self {
         Self {
-            environment: Environment::new(),
+            environment: Environment::new_global(),
         }
     }
 
@@ -147,6 +147,19 @@ impl Interpreter {
 
     fn execute(&mut self, stmt: &Stmt) -> Result<()> {
         match stmt {
+            Stmt::Block(stmts) => {
+                let previous = self.environment.clone();
+                self.environment = Environment::new_local(&self.environment);
+
+                for stmt in stmts {
+                    if self.execute(stmt).is_err() {
+                        self.environment = previous.clone();
+                    }
+                }
+
+                self.environment = previous.clone();
+                return Ok(());
+            }
             Stmt::Expression(expr) => {
                 self.evaluate(expr)?;
             }
