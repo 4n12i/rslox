@@ -3,7 +3,6 @@ use crate::token::Token;
 use crate::token_type::TokenType;
 use anyhow::bail;
 use anyhow::Result;
-use core::fmt;
 use once_cell::sync::Lazy;
 use std::collections::HashMap;
 use tracing::debug;
@@ -28,27 +27,6 @@ static KEYWORDS: Lazy<HashMap<&'static str, TokenType>> = Lazy::new(|| {
         ("while", TokenType::While),
     ])
 });
-
-#[derive(Debug)]
-enum ScanError {
-    UnexpectedChar,
-    UnterminatedStr,
-}
-
-impl ScanError {
-    fn report(&self, line: usize) -> String {
-        format!("[line {}] Error: {}", line, self)
-    }
-}
-
-impl fmt::Display for ScanError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::UnexpectedChar => write!(f, "Unexpected character"),
-            Self::UnterminatedStr => write!(f, "Unterminated string"),
-        }
-    }
-}
 
 #[derive(Debug)]
 pub struct Scanner {
@@ -148,7 +126,7 @@ impl Scanner {
                     let t = self.get_identifier()?;
                     self.create_token(t)?
                 } else {
-                    bail!(ScanError::UnexpectedChar.report(self.line))
+                    bail!(report(self.line, "Unexpected character."))
                 }
             }
         };
@@ -193,7 +171,7 @@ impl Scanner {
         }
 
         if self.is_at_end() {
-            bail!(ScanError::UnterminatedStr.report(self.line));
+            bail!(report(self.line, "Unterminated string."));
         }
 
         // The closing `"`.
@@ -266,6 +244,10 @@ fn is_alpha(c: char) -> bool {
 
 fn is_alpha_numeric(c: char) -> bool {
     c.is_ascii_alphanumeric() || c == '_'
+}
+
+fn report(line: usize, message: &str) -> String {
+    format!("[line {}] Error: {}", line, message)
 }
 
 #[cfg(test)]

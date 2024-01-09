@@ -6,30 +6,6 @@ use crate::token::Token;
 use crate::token_type::TokenType;
 use anyhow::bail;
 use anyhow::Result;
-use core::fmt;
-
-#[derive(Debug)]
-enum RuntimeError {
-    InvalidOperands,
-    NonNumericOperand,
-    NonNumericOperands,
-}
-
-impl RuntimeError {
-    fn report(&self, t: &Token) -> String {
-        format!("{}\n[line {}]", self, t.line)
-    }
-}
-
-impl fmt::Display for RuntimeError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::InvalidOperands => write!(f, "Operands must be two numbers or two strings"),
-            Self::NonNumericOperand => write!(f, "Operand must be a number"),
-            Self::NonNumericOperands => write!(f, "Operands must be numbers"),
-        }
-    }
-}
 
 pub struct Interpreter {
     environment: Environment,
@@ -41,16 +17,6 @@ impl Interpreter {
             environment: Environment::new_global(),
         }
     }
-
-    // pub fn run(expr: &Expr) -> Result<()> {
-    //     match evaluate(expr) {
-    //         Ok(value) => {
-    //             println!("{value}");
-    //             Ok(())
-    //         }
-    //         Err(error) => bail!("{error}"),
-    //     }
-    // }
 
     pub fn run(&mut self, statements: &[Stmt]) -> Result<()> {
         for statement in statements {
@@ -78,31 +44,31 @@ impl Interpreter {
                         (LoxValue::Number(n1), LoxValue::Number(n2)) => {
                             Ok(LoxValue::Boolean(n1.gt(&n2)))
                         }
-                        _ => bail!(RuntimeError::NonNumericOperands.report(operator)),
+                        _ => bail!(report(operator, "Operands must be numbers.")),
                     },
                     TokenType::GreaterEqual => match (left, right) {
                         (LoxValue::Number(n1), LoxValue::Number(n2)) => {
                             Ok(LoxValue::Boolean(n1.ge(&n2)))
                         }
-                        _ => bail!(RuntimeError::NonNumericOperands.report(operator)),
+                        _ => bail!(report(operator, "Operands must be numbers.")),
                     },
                     TokenType::Less => match (left, right) {
                         (LoxValue::Number(n1), LoxValue::Number(n2)) => {
                             Ok(LoxValue::Boolean(n1.lt(&n2)))
                         }
-                        _ => bail!(RuntimeError::NonNumericOperands.report(operator)),
+                        _ => bail!(report(operator, "Operands must be numbers.")),
                     },
                     TokenType::LessEqual => match (left, right) {
                         (LoxValue::Number(n1), LoxValue::Number(n2)) => {
                             Ok(LoxValue::Boolean(n1.le(&n2)))
                         }
-                        _ => bail!(RuntimeError::NonNumericOperands.report(operator)),
+                        _ => bail!(report(operator, "Operands must be numbers.")),
                     },
                     TokenType::Minus => match (left, right) {
                         (LoxValue::Number(n1), LoxValue::Number(n2)) => {
                             Ok(LoxValue::Number(n1 - n2))
                         }
-                        _ => bail!("Operands must be numbers"),
+                        _ => bail!("Operands must be numbers."),
                     },
                     TokenType::Plus => match (left, right) {
                         (LoxValue::Number(n1), LoxValue::Number(n2)) => {
@@ -111,19 +77,22 @@ impl Interpreter {
                         (LoxValue::String(s1), LoxValue::String(s2)) => {
                             Ok(LoxValue::String(s1 + &s2))
                         }
-                        _ => bail!(RuntimeError::InvalidOperands.report(operator)),
+                        _ => bail!(report(
+                            operator,
+                            "Operands must be two numbers or two strings."
+                        )),
                     },
                     TokenType::Slash => match (left, right) {
                         (LoxValue::Number(n1), LoxValue::Number(n2)) => {
                             Ok(LoxValue::Number(n1 / n2))
                         }
-                        _ => bail!(RuntimeError::NonNumericOperands.report(operator)),
+                        _ => bail!(report(operator, "Operands must be numbers.")),
                     },
                     TokenType::Star => match (left, right) {
                         (LoxValue::Number(n1), LoxValue::Number(n2)) => {
                             Ok(LoxValue::Number(n1 * n2))
                         }
-                        _ => bail!(RuntimeError::NonNumericOperands.report(operator)),
+                        _ => bail!(report(operator, "Operands must be numbers.")),
                     },
                     _ => bail!("Error"), // Unreachable
                 }
@@ -147,7 +116,7 @@ impl Interpreter {
                     TokenType::Bang => Ok(LoxValue::Boolean(!is_truthy(right))),
                     TokenType::Minus => match right {
                         LoxValue::Number(n) => Ok(LoxValue::Number(-n)),
-                        _ => bail!(RuntimeError::NonNumericOperand.report(operator)),
+                        _ => bail!(report(operator, "Operand must be a number.")),
                     },
                     _ => bail!("Error"), // Unreachable
                 }
@@ -208,4 +177,8 @@ fn is_truthy(object: LoxValue) -> bool {
         LoxValue::Nil => false,
         _ => true,
     }
+}
+
+fn report(token: &Token, message: &str) -> String {
+    format!("{}\n[line {}]", message, token.line)
 }

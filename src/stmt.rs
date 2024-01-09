@@ -29,7 +29,7 @@ fn format_ast(stmt: &Stmt) -> String {
         }
         Stmt::Expression(expr) => format!("(; {})", expr),
         Stmt::If(condition, then_branch, else_branch) => match else_branch {
-            Some(b) => format!("(if-else) {} {} {}", condition, then_branch, b),
+            Some(e) => format!("(if-else) {} {} {}", condition, then_branch, e),
             None => format!("(if {} {})", condition, then_branch),
         },
         Stmt::Print(value) => format!("(print {})", value),

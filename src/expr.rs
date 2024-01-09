@@ -21,32 +21,22 @@ impl fmt::Display for Expr {
 
 fn format_ast(expr: &Expr) -> String {
     match expr {
-        Expr::Assign(name, value) => {
-            format!("(= {} {})", name.lexeme, value)
-        }
-        Expr::Binary(left, operator, right) => {
-            format!(
-                "({} {} {})",
-                operator.lexeme,
-                format_ast(left),
-                format_ast(right)
-            )
-        }
-        Expr::Grouping(expr) => {
-            format!("(group {})", format_ast(expr))
-        }
+        Expr::Assign(name, value) => format!("(= {} {})", name.lexeme, value),
+        Expr::Binary(left, operator, right) => format!(
+            "({} {} {})",
+            operator.lexeme,
+            format_ast(left),
+            format_ast(right)
+        ),
+        Expr::Grouping(expr) => format!("(group {})", format_ast(expr)),
         Expr::Literal(value) => value.to_string(),
-        Expr::Logical(left, operator, right) => {
-            format!(
-                "({} {} {})",
-                format_ast(left),
-                operator.lexeme,
-                format_ast(right)
-            )
-        }
-        Expr::Unary(operator, right) => {
-            format!("({} {})", operator.lexeme, format_ast(right))
-        }
+        Expr::Logical(left, operator, right) => format!(
+            "({} {} {})",
+            format_ast(left),
+            operator.lexeme,
+            format_ast(right)
+        ),
+        Expr::Unary(operator, right) => format!("({} {})", operator.lexeme, format_ast(right)),
         Expr::Variable(name) => name.lexeme.clone(),
     }
 }

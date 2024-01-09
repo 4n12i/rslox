@@ -4,51 +4,7 @@ use crate::token::Token;
 use crate::token_type::TokenType;
 use anyhow::bail;
 use anyhow::Result;
-use core::fmt;
 use tracing::debug;
-
-#[derive(Debug)]
-enum ParseError {
-    Expr,
-    RightParen,
-    SemicolonAfterExpr,
-    SemicolonAfterValue,
-    VariableName,
-    SemicolonAfterVarDecl,
-    Block,
-}
-
-impl ParseError {
-    fn report(&self, token: &Token) -> String {
-        let place = match token.token_type {
-            TokenType::Eof => " at end".to_string(),
-            _ => format!(" at '{}'", token.lexeme),
-        };
-        format!("[line {}] Error{}: {}", token.line, place, self)
-    }
-}
-
-fn report(token: &Token, message: &str) -> String {
-    let place = match token.token_type {
-        TokenType::Eof => " at end".to_string(),
-        _ => format!(" at '{}'", token.lexeme),
-    };
-    format!("[line {}] Error{}: {}", token.line, place, message)
-}
-
-impl fmt::Display for ParseError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Expr => write!(f, "Expect expression."),
-            Self::RightParen => write!(f, "Expect ')' after expression."),
-            Self::SemicolonAfterExpr => write!(f, "Expect ';' after expression."),
-            Self::SemicolonAfterValue => write!(f, "Expect ';' after value."),
-            Self::VariableName => write!(f, "Expect variable name."),
-            Self::SemicolonAfterVarDecl => write!(f, "Expect ';' after variable declaration."),
-            Self::Block => write!(f, "Expect '}}' after block."),
-        }
-    }
-}
 
 pub struct Parser {
     tokens: Vec<Token>,
@@ -59,16 +15,6 @@ impl Parser {
     pub fn new(tokens: Vec<Token>) -> Self {
         Parser { tokens, current: 0 }
     }
-
-    // pub fn run(&mut self) -> Result<Expr> {
-    //     match self.expression() {
-    //         Ok(expr) => {
-    //             debug!("{expr}");
-    //             Ok(*expr)
-    //         }
-    //         Err(error) => bail!("{error}"),
-    //     }
-    // }
 
     pub fn run(&mut self) -> Result<Vec<Stmt>> {
         let mut statements = Vec::new();
@@ -123,9 +69,9 @@ impl Parser {
 
     // if_stmt -> "if" "(" expression ")" statement ( "else" statement )? ;
     fn if_statement(&mut self) -> Result<Stmt> {
-        self.new_consume(TokenType::LeftParen, "Expect '(' after 'if'.")?;
+        self.consume(TokenType::LeftParen, "Expect '(' after 'if'.")?;
         let condition = self.expression()?;
-        self.new_consume(TokenType::RightParen, "Expect ')' after if condition.")?;
+        self.consume(TokenType::RightParen, "Expect ')' after if condition.")?;
 
         let then_branch = self.statement()?;
         let else_branch = if self.is_match(&[TokenType::Else]) {
@@ -140,14 +86,14 @@ impl Parser {
     // print_stmt -> "print" expression ";" ;
     fn print_statement(&mut self) -> Result<Stmt> {
         let value = self.expression()?;
-        self.consume(TokenType::Semicolon, ParseError::SemicolonAfterValue)?;
+        self.consume(TokenType::Semicolon, "Expect ';' after value.")?;
         Ok(Stmt::Print(value))
     }
 
     // var_decl -> "var" identifier ( "=" expression )? ";" ;
     fn var_declaration(&mut self) -> Result<Stmt> {
         let name = self
-            .consume(TokenType::Identifier, ParseError::VariableName)?
+            .consume(TokenType::Identifier, "Expect variable name.")?
             .clone();
         let initializer = if self.tokens[self.current].token_type == TokenType::Equal {
             self.advance();
@@ -155,15 +101,18 @@ impl Parser {
         } else {
             None
         };
-        self.consume(TokenType::Semicolon, ParseError::SemicolonAfterVarDecl)?;
+        self.consume(
+            TokenType::Semicolon,
+            "Expect ';' after variable declaration.",
+        )?;
         Ok(Stmt::Var(name, initializer))
     }
 
     // while_stmt -> "while" "(" expression ")" statement ;
     fn while_statement(&mut self) -> Result<Stmt> {
-        self.new_consume(TokenType::LeftParen, "Expect '(' after 'while'.")?;
+        self.consume(TokenType::LeftParen, "Expect '(' after 'while'.")?;
         let condition = self.expression()?;
-        self.new_consume(TokenType::RightParen, "Expect ')' after condition")?;
+        self.consume(TokenType::RightParen, "Expect ')' after condition.")?;
         let body = self.statement()?;
 
         Ok(Stmt::While(condition, Box::new(body)))
@@ -172,7 +121,7 @@ impl Parser {
     // expr_stmt -> expression ";" ;
     fn expression_statement(&mut self) -> Result<Stmt> {
         let expr = self.expression()?;
-        self.consume(TokenType::Semicolon, ParseError::SemicolonAfterExpr)?;
+        self.consume(TokenType::Semicolon, "Expect ';' after expression.")?;
         Ok(Stmt::Expression(expr))
     }
 
@@ -184,7 +133,7 @@ impl Parser {
             statements.push(self.declaration()?);
         }
 
-        self.consume(TokenType::RightBrace, ParseError::Block)?;
+        self.consume(TokenType::RightBrace, "Expect '}}' after block.")?;
         Ok(Stmt::Block(statements))
     }
 
@@ -317,22 +266,40 @@ impl Parser {
             TokenType::LeftParen => {
                 self.advance();
                 let expr = self.expression()?;
-                self.consume(TokenType::RightParen, ParseError::RightParen)?;
+                self.consume(TokenType::RightParen, "Expect ')' after expression.")?;
                 Ok(Expr::Grouping(expr))
             }
-            _ => bail!(ParseError::Expr.report(self.peek())),
+            _ => bail!(report(self.peek(), "Expect expression.")),
         }
     }
 
-    fn consume(&mut self, token_type: TokenType, message: ParseError) -> Result<&Token> {
-        if self.peek().token_type == token_type {
-            return Ok(self.advance());
+    fn synchronize(&mut self) -> Result<()> {
+        let t = [
+            TokenType::Class,
+            TokenType::Fun,
+            TokenType::Var,
+            TokenType::For,
+            TokenType::If,
+            TokenType::While,
+            TokenType::Print,
+            TokenType::Return,
+        ];
+
+        self.advance();
+        while !self.is_at_end() {
+            if self.previous().token_type == TokenType::Semicolon {
+                return Ok(());
+            }
+            if t.contains(&self.peek().token_type) {
+                return Ok(());
+            }
+            self.advance();
         }
-        bail!(message.report(self.peek()))
+
+        Ok(())
     }
 
-    // TODO: Change
-    fn new_consume(&mut self, token_type: TokenType, message: &str) -> Result<&Token> {
+    fn consume(&mut self, token_type: TokenType, message: &str) -> Result<&Token> {
         if self.peek().token_type == token_type {
             return Ok(self.advance());
         }
@@ -345,11 +312,6 @@ impl Parser {
             return true;
         }
         false
-    }
-
-    // TODO: Change
-    fn _is_match(&self, token_types: &[TokenType]) -> bool {
-        token_types.contains(&self.peek().token_type)
     }
 
     fn check(&self, token_type: TokenType) -> bool {
@@ -378,30 +340,12 @@ impl Parser {
     fn is_at_end(&self) -> bool {
         self.peek().token_type == TokenType::Eof
     }
+}
 
-    fn synchronize(&mut self) -> Result<()> {
-        let t = [
-            TokenType::Class,
-            TokenType::Fun,
-            TokenType::Var,
-            TokenType::For,
-            TokenType::If,
-            TokenType::While,
-            TokenType::Print,
-            TokenType::Return,
-        ];
-
-        self.advance();
-        while !self.is_at_end() {
-            if self.previous().token_type == TokenType::Semicolon {
-                return Ok(());
-            }
-            if t.contains(&self.peek().token_type) {
-                return Ok(());
-            }
-            self.advance();
-        }
-
-        Ok(())
-    }
+fn report(token: &Token, message: &str) -> String {
+    let place = match token.token_type {
+        TokenType::Eof => " at end".to_string(),
+        _ => format!(" at '{}'", token.lexeme),
+    };
+    format!("[line {}] Error{}: {}", token.line, place, message)
 }
