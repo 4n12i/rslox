@@ -9,6 +9,7 @@ pub enum Stmt {
     If(Box<Expr>, Box<Stmt>, Option<Box<Stmt>>),
     Print(Box<Expr>),
     Var(Token, Option<Box<Expr>>),
+    While(Box<Expr>, Box<Stmt>),
 }
 
 impl fmt::Display for Stmt {
@@ -36,5 +37,6 @@ fn format_ast(stmt: &Stmt) -> String {
             Some(i) => format!("(var {} = {})", name.lexeme, i),
             None => format!("(var {})", name.lexeme),
         },
+        Stmt::While(condition, body) => format!("(while {} {})", condition, format_ast(body)),
     }
 }

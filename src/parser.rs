@@ -104,13 +104,16 @@ impl Parser {
         }
     }
 
-    // statement -> expr_stmt | if_stmt | print_stmt | block ;
+    // statement -> expr_stmt | if_stmt | print_stmt | while_stmt | block ;
     fn statement(&mut self) -> Result<Stmt> {
         if self.is_match(&[TokenType::If]) {
             return self.if_statement();
         }
         if self.is_match(&[TokenType::Print]) {
             return self.print_statement();
+        }
+        if self.is_match(&[TokenType::While]) {
+            return self.while_statement();
         }
         if self.is_match(&[TokenType::LeftBrace]) {
             return self.block();
@@ -154,6 +157,16 @@ impl Parser {
         };
         self.consume(TokenType::Semicolon, ParseError::SemicolonAfterVarDecl)?;
         Ok(Stmt::Var(name, initializer))
+    }
+
+    // while_stmt -> "while" "(" expression ")" statement ;
+    fn while_statement(&mut self) -> Result<Stmt> {
+        self.new_consume(TokenType::LeftParen, "Expect '(' after 'while'.")?;
+        let condition = self.expression()?;
+        self.new_consume(TokenType::RightParen, "Expect ')' after condition")?;
+        let body = self.statement()?;
+
+        Ok(Stmt::While(condition, Box::new(body)))
     }
 
     // expr_stmt -> expression ";" ;
