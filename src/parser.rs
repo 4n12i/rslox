@@ -104,8 +104,11 @@ impl Parser {
         }
     }
 
-    // statement -> expr_stmt | print_stmt | block ;
+    // statement -> expr_stmt | if_stmt | print_stmt | block ;
     fn statement(&mut self) -> Result<Stmt> {
+        if self.is_match(&[TokenType::If]) {
+            return self.if_statement();
+        }
         if self.is_match(&[TokenType::Print]) {
             return self.print_statement();
         }
@@ -113,6 +116,22 @@ impl Parser {
             return self.block();
         }
         self.expression_statement()
+    }
+
+    // if_stmt -> "if" "(" expression ")" statement ( "else" statement )? ;
+    fn if_statement(&mut self) -> Result<Stmt> {
+        self.new_consume(TokenType::LeftParen, "Expect '(' after 'if'.")?;
+        let condition = self.expression()?;
+        self.new_consume(TokenType::RightParen, "Expect ')' after if condition.")?;
+
+        let then_branch = self.statement()?;
+        let else_branch = if self.is_match(&[TokenType::Else]) {
+            Some(Box::new(self.statement()?))
+        } else {
+            None
+        };
+
+        Ok(Stmt::If(condition, Box::new(then_branch), else_branch))
     }
 
     // print_stmt -> "print" expression ";" ;
@@ -156,9 +175,9 @@ impl Parser {
         Ok(Stmt::Block(statements))
     }
 
-    // assignment -> identifier "=" assignment | equality ;
+    // assignment -> identifier "=" assignment | logic_or ;
     fn assignment(&mut self) -> Result<Box<Expr>> {
-        let expr = self.equality()?;
+        let expr = self.or()?;
 
         if self.is_match(&[TokenType::Equal]) {
             let equals = self.previous().clone();
@@ -168,6 +187,32 @@ impl Parser {
                 Expr::Variable(name) => return Ok(Box::new(Expr::Assign(name, value))),
                 _ => bail!(report(&equals, "Invalid assignment target")),
             }
+        }
+
+        Ok(expr)
+    }
+
+    // logic_or -> logic_and ( "or" logic_and )* ;
+    fn or(&mut self) -> Result<Box<Expr>> {
+        let mut expr = self.and()?;
+
+        while self.is_match(&[TokenType::Or]) {
+            let operator = self.previous().clone();
+            let right = self.and()?;
+            expr = Box::new(Expr::Logical(expr, operator, right));
+        }
+
+        Ok(expr)
+    }
+
+    // logic_and -> equality ( "and" equality )* ;
+    fn and(&mut self) -> Result<Box<Expr>> {
+        let mut expr = self.equality()?;
+
+        while self.is_match(&[TokenType::And]) {
+            let operator = self.previous().clone();
+            let right = self.equality()?;
+            expr = Box::new(Expr::Logical(expr, operator, right));
         }
 
         Ok(expr)
@@ -274,7 +319,7 @@ impl Parser {
     }
 
     // TODO: Change
-    fn _consume(&mut self, token_type: TokenType, message: &str) -> Result<&Token> {
+    fn new_consume(&mut self, token_type: TokenType, message: &str) -> Result<&Token> {
         if self.peek().token_type == token_type {
             return Ok(self.advance());
         }

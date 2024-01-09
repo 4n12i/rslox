@@ -8,6 +8,7 @@ pub enum Expr {
     Binary(Box<Expr>, Token, Box<Expr>),
     Grouping(Box<Expr>),
     Literal(Literal),
+    Logical(Box<Expr>, Token, Box<Expr>),
     Unary(Token, Box<Expr>),
     Variable(Token),
 }
@@ -35,6 +36,14 @@ fn format_ast(expr: &Expr) -> String {
             format!("(group {})", format_ast(expr))
         }
         Expr::Literal(value) => value.to_string(),
+        Expr::Logical(left, operator, right) => {
+            format!(
+                "({} {} {})",
+                format_ast(left),
+                operator.lexeme,
+                format_ast(right)
+            )
+        }
         Expr::Unary(operator, right) => {
             format!("({} {})", operator.lexeme, format_ast(right))
         }

@@ -6,6 +6,7 @@ use core::fmt;
 pub enum Stmt {
     Block(Vec<Stmt>),
     Expression(Box<Expr>),
+    If(Box<Expr>, Box<Stmt>, Option<Box<Stmt>>),
     Print(Box<Expr>),
     Var(Token, Option<Box<Expr>>),
 }
@@ -26,6 +27,10 @@ fn format_ast(stmt: &Stmt) -> String {
             format!("(block {})", decls.join(" "))
         }
         Stmt::Expression(expr) => format!("(; {})", expr),
+        Stmt::If(condition, then_branch, else_branch) => match else_branch {
+            Some(b) => format!("(if-else) {} {} {}", condition, then_branch, b),
+            None => format!("(if {} {})", condition, then_branch),
+        },
         Stmt::Print(value) => format!("(print {})", value),
         Stmt::Var(name, initializer) => match initializer {
             Some(i) => format!("(var {} = {})", name.lexeme, i),

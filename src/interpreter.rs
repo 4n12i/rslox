@@ -130,6 +130,17 @@ impl Interpreter {
             }
             Expr::Grouping(expr) => self.evaluate(expr),
             Expr::Literal(value) => Ok(value.clone()),
+            Expr::Logical(left, operator, right) => {
+                let left = self.evaluate(left)?;
+                if operator.token_type == TokenType::Or {
+                    if is_truthy(left.clone()) {
+                        return Ok(left);
+                    }
+                } else if !is_truthy(left.clone()) {
+                    return Ok(left);
+                }
+                self.evaluate(right)
+            }
             Expr::Unary(operator, right) => {
                 let right = self.evaluate(right)?;
                 match operator.token_type {
@@ -162,6 +173,13 @@ impl Interpreter {
             }
             Stmt::Expression(expr) => {
                 self.evaluate(expr)?;
+            }
+            Stmt::If(condition, then_branch, else_branch) => {
+                if is_truthy(self.evaluate(condition)?) {
+                    self.execute(then_branch)?;
+                } else if let Some(b) = else_branch {
+                    self.execute(b)?;
+                }
             }
             Stmt::Print(expr) => {
                 println!("{}", self.evaluate(expr)?);
