@@ -5,8 +5,6 @@ use std::path::PathBuf;
 use std::path::Path;
 
 fn main() -> Result<()> {
-    let mut files = Vec::new();
-
     let mut src: Vec<String> = [
         "#[cfg(test)]",
         "mod tests {",
@@ -18,18 +16,20 @@ fn main() -> Result<()> {
     .map(|s| s.to_string())
     .collect();
 
+    let mut other_files = Vec::new();
     let entries = get_entries(&PathBuf::from("../examples"))?;
-    for e in entries {
-        if e.is_dir() {
-            if let Some(d) = dir_name(&e)? {
-                src.extend_from_slice(&method(&d, &asserts(&get_entries(&e)?)?));
+    for entry in entries {
+        if entry.is_dir() {
+            if let Some(dir) = dir_name(&entry)? {
+                let files = get_entries(&entry)?;
+                src.extend_from_slice(&method(&dir, &files)?);
             }
         } else {
-            files.push(e);
+            other_files.push(entry);
         }
     }
 
-    src.extend_from_slice(&method("others", &asserts(&files)?));
+    src.extend_from_slice(&method("others", &other_files)?);
     src.push("}".to_string());
 
     fs::write("../tests/main.rs", src.join("\n"))?;
@@ -58,16 +58,16 @@ fn dir_name(path: &Path) -> Result<Option<String>> {
     }
 }
 
-fn method(dir: &str, scripts: &[String]) -> Vec<String> {
+fn method(dir: &str, entries: &[PathBuf]) -> Result<Vec<String>> {
     let mut method: Vec<String> = ["", "\t#[test]"]
         .iter()
         .map(|s| s.to_string())
         .collect();
     method.push(format!("\tfn {}() {{", dir));
-    method.extend_from_slice(scripts);
+    method.extend_from_slice(&asserts(entries)?);
     method.push("\t}".to_string());
 
-    method
+    Ok(method)
 }
 
 fn asserts(files: &[PathBuf]) -> Result<Vec<String>> {
