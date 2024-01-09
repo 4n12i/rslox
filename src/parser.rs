@@ -1,4 +1,5 @@
 use crate::expr::Expr;
+use crate::literal::Literal;
 use crate::stmt::Stmt;
 use crate::token::Token;
 use crate::token_type::TokenType;
@@ -50,8 +51,11 @@ impl Parser {
         }
     }
 
-    // statement -> expr_stmt | if_stmt | print_stmt | while_stmt | block ;
+    // statement -> expr_stmt | for_stmt | if_stmt | print_stmt | while_stmt | block ;
     fn statement(&mut self) -> Result<Stmt> {
+        if self.is_match(&[TokenType::For]) {
+            return self.for_statement();
+        }
         if self.is_match(&[TokenType::If]) {
             return self.if_statement();
         }
@@ -65,6 +69,46 @@ impl Parser {
             return self.block();
         }
         self.expression_statement()
+    }
+
+    // for_stmt -> "for" "(" ( var_decl | expr_stmt | ";" ) expression? ";" expression? ")" statement ;
+    fn for_statement(&mut self) -> Result<Stmt> {
+        self.consume(TokenType::LeftParen, "Expect '(' after 'for'.")?;
+
+        let initializer = if self.is_match(&[TokenType::Semicolon]) {
+            None
+        } else if self.is_match(&[TokenType::Var]) {
+            Some(self.var_declaration()?)
+        } else {
+            Some(self.expression_statement()?)
+        };
+
+        let mut condition = None;
+        if !self.check(TokenType::Semicolon) {
+            condition = Some(self.expression()?);
+        }
+        self.consume(TokenType::Semicolon, "Expect ';' after loop condition.")?;
+
+        let mut increment = None;
+        if !self.check(TokenType::RightParen) {
+            increment = Some(self.expression()?);
+        }
+        self.consume(TokenType::RightParen, "Expect ')' after for clauses.")?;
+
+        let mut body = self.statement()?;
+        if let Some(i) = increment {
+            body = Stmt::Block(Vec::from([body, Stmt::Expression(i)]));
+        }
+        if condition.is_none() {
+            condition = Some(Box::new(Expr::Literal(Literal::Boolean(true))));
+        }
+        body = Stmt::While(condition.expect("Failed to get value"), Box::new(body));
+
+        if let Some(i) = initializer {
+            body = Stmt::Block(Vec::from([i, body]));
+        }
+
+        Ok(body)
     }
 
     // if_stmt -> "if" "(" expression ")" statement ( "else" statement )? ;

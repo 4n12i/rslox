@@ -6,6 +6,7 @@ use crate::token::Token;
 use crate::token_type::TokenType;
 use anyhow::bail;
 use anyhow::Result;
+use tracing::debug;
 
 pub struct Interpreter {
     environment: Environment,
@@ -20,13 +21,12 @@ impl Interpreter {
 
     pub fn run(&mut self, statements: &[Stmt]) -> Result<()> {
         for statement in statements {
+            debug!("[interpreter_run] stmt >> {}", statement);
             self.execute(statement)?;
         }
         Ok(())
     }
-}
 
-impl Interpreter {
     fn evaluate(&mut self, expr: &Expr) -> Result<LoxValue> {
         match expr {
             Expr::Assign(name, value) => {
@@ -132,13 +132,13 @@ impl Interpreter {
                 self.environment = Environment::new_local(&self.environment);
 
                 for stmt in stmts {
+                    debug!("[interpreter_execute_block] stmt >> {}", stmt);
                     if self.execute(stmt).is_err() {
                         self.environment = previous.clone();
                     }
                 }
 
                 self.environment = previous.clone();
-                return Ok(());
             }
             Stmt::Expression(expr) => {
                 self.evaluate(expr)?;
