@@ -6,7 +6,6 @@ use std::path::Path;
 
 fn main() -> Result<()> {
     let mut src: Vec<String> = [
-        "#[cfg(test)]",
         "mod tests {",
         "\textern crate rslox;",
         "",
