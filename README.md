@@ -3,7 +3,11 @@ Rust implementation of a Lox interpreter
 
 ## Usage
 ```sh
-$ cargo run
+# Run prompt
+$ cargo run 
+
+# Run a lox file
+$ cargo run <file>
 ```
 
 With debug log: 
@@ -17,7 +21,7 @@ $ RUST_LOG=debug cargo run
 - [x] Parsing Expressions
 - [x] Evaluating Expressions
 - [x] Statements and State
-- [ ] Control Flow
+- [x] Control Flow
 - [ ] Functions
 - [ ] Resolving and Binding
 - [ ] Classes
