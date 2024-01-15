@@ -62,7 +62,7 @@ fn method(dir: &str, entries: &[PathBuf]) -> Result<Vec<String>> {
         .iter()
         .map(|s| s.to_string())
         .collect();
-    method.push(format!("\tfn {}() {{", dir));
+    method.push(format!("\tfn check_{}() {{", dir));
     method.extend_from_slice(&asserts(entries)?);
     method.push("\t}".to_string());
 
