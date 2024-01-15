@@ -4,9 +4,9 @@ use anyhow::bail;
 use anyhow::Result;
 use std::collections::HashMap;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Environment {
-    enclosing: Option<Box<Environment>>,
+    pub enclosing: Option<Box<Environment>>,
     pub values: HashMap<String, LoxValue>,
 }
 
@@ -35,7 +35,7 @@ impl Environment {
 
     pub fn get(&self, name: &Token) -> Result<LoxValue> {
         match self.values.get(&name.lexeme) {
-            Some(n) => Ok(n.clone()),
+            Some(value) => Ok(value.clone()),
             None => {
                 if let Some(ref e) = self.enclosing {
                     return e.get(name);

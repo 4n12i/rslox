@@ -128,17 +128,21 @@ impl Interpreter {
     fn execute(&mut self, stmt: &Stmt) -> Result<()> {
         match stmt {
             Stmt::Block(stmts) => {
-                let previous = self.environment.clone();
                 self.environment = Environment::new_local(&self.environment);
 
                 for stmt in stmts {
-                    debug!("[interpreter_execute_block] stmt >> {}", stmt);
                     if self.execute(stmt).is_err() {
-                        self.environment = previous.clone();
+                        match self.environment.enclosing.as_ref() {
+                            Some(env) => self.environment = *env.clone(),
+                            None => bail!("Undefined variable"),
+                        }
                     }
                 }
 
-                self.environment = previous.clone();
+                match self.environment.enclosing.as_ref() {
+                    Some(env) => self.environment = *env.clone(),
+                    None => bail!("Undefined variable"),
+                }
             }
             Stmt::Expression(expr) => {
                 self.evaluate(expr)?;
