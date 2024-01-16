@@ -1,8 +1,8 @@
 use crate::expr::Expr;
-use crate::literal::Literal;
 use crate::stmt::Stmt;
 use crate::token::Token;
 use crate::token_type::TokenType;
+use crate::value::Value;
 use anyhow::bail;
 use anyhow::Result;
 use tracing::debug;
@@ -35,9 +35,11 @@ impl Parser {
         self.assignment()
     }
 
-    // declaration -> var_decl | statement ;
+    // declaration -> fun_decl | var_decl | statement ;
     fn declaration(&mut self) -> Result<Stmt> {
-        let re = if self.is_match(&[TokenType::Var]) {
+        let re = if self.is_match(&[TokenType::Fun]) {
+            self.function("function")
+        } else if self.is_match(&[TokenType::Var]) {
             self.var_declaration()
         } else {
             self.statement()
@@ -45,6 +47,7 @@ impl Parser {
         match re {
             Ok(stmt) => Ok(stmt),
             Err(error) => {
+                // TODO: Return null???
                 self.synchronize()?;
                 bail!("{error}")
             }
@@ -100,7 +103,7 @@ impl Parser {
             body = Stmt::Block(Vec::from([body, Stmt::Expression(i)]));
         }
         if condition.is_none() {
-            condition = Some(Box::new(Expr::Literal(Literal::Boolean(true))));
+            condition = Some(Box::new(Expr::Literal(Value::Boolean(true))));
         }
         body = Stmt::While(condition.expect("Failed to get value"), Box::new(body));
 
@@ -167,6 +170,42 @@ impl Parser {
         let expr = self.expression()?;
         self.consume(TokenType::Semicolon, "Expect ';' after expression.")?;
         Ok(Stmt::Expression(expr))
+    }
+
+    // function -> identifier "(" parameters? ")" block ;
+    fn function(&mut self, kind: &str) -> Result<Stmt> {
+        let name = self
+            .consume(TokenType::Identifier, &format!("Expect {} name.", kind))?
+            .clone();
+        self.consume(
+            TokenType::LeftParen,
+            &format!("Expect '(' after {} name.", kind),
+        )?;
+
+        let mut parameters = Vec::new();
+        if !self.check(TokenType::RightParen) {
+            loop {
+                if parameters.len() >= 255 {
+                    bail!(report(self.peek(), "Can't have more than 255 parameters."));
+                }
+                let p = self
+                    .consume(TokenType::Identifier, "Expect parameter name.")?
+                    .clone();
+                parameters.push(p);
+                if self.is_match(&[TokenType::Comma]) {
+                    break;
+                }
+            }
+        }
+
+        self.consume(TokenType::RightParen, "Expect ')' after parameters.")?;
+        self.consume(
+            TokenType::LeftBrace,
+            &format!("Expect '{{' before {} body.", kind),
+        )?;
+
+        let body = self.block()?;
+        Ok(Stmt::Function(name, parameters, Box::new(body)))
     }
 
     // block -> "{" declaration* "}" ;
@@ -343,7 +382,7 @@ impl Parser {
             | TokenType::String
             | TokenType::True
             | TokenType::False
-            | TokenType::Nil => Ok(Expr::Literal(self.advance().literal.clone())),
+            | TokenType::Nil => Ok(Expr::Literal(self.advance().literal.clone().into())),
             TokenType::Identifier => Ok(Expr::Variable(self.advance().clone())),
             TokenType::LeftParen => {
                 self.advance();

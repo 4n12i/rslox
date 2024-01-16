@@ -1,4 +1,3 @@
-use crate::value::Function;
 use core::fmt;
 
 #[allow(dead_code)]
@@ -8,7 +7,6 @@ pub enum Literal {
     Number(f64),
     String(String),
     Nil,
-    Function(Function),
 }
 
 impl fmt::Display for Literal {
@@ -18,7 +16,6 @@ impl fmt::Display for Literal {
             Self::String(s) => write!(f, "{s}"),
             Self::Boolean(b) => write!(f, "{b}"),
             Self::Nil => write!(f, "nil"),
-            Self::Function(_) => write!(f, "fn"), // TODO: Remove later
         }
     }
 }

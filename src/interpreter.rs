@@ -1,22 +1,25 @@
 use crate::environment::Environment;
 use crate::expr::Expr;
-use crate::literal::Literal as LoxValue;
+// use crate::literal::Literal as LoxValue;
+use crate::callable::Callable;
 use crate::stmt::Stmt;
 use crate::token::Token;
 use crate::token_type::TokenType;
+use crate::value::Value as LoxValue;
 use anyhow::bail;
 use anyhow::Result;
 use tracing::debug;
 
 pub struct Interpreter {
+    pub globals: Environment,
     environment: Environment,
 }
 
 impl Interpreter {
     pub fn new() -> Self {
-        // let globals = Environment::new_global();
         // globals.define("clock", )
         Self {
+            globals: Environment::new_global(),
             environment: Environment::new_global(),
         }
     }
@@ -117,7 +120,7 @@ impl Interpreter {
 
                 match callee {
                     LoxValue::Function(f) => {
-                        if arguments.len() != f.arity {
+                        if arguments.len() != f.arity() {
                             bail!("Error");
                         }
                         Ok(LoxValue::Nil)
@@ -153,7 +156,7 @@ impl Interpreter {
         }
     }
 
-    fn execute(&mut self, stmt: &Stmt) -> Result<()> {
+    pub fn execute(&mut self, stmt: &Stmt) -> Result<()> {
         match stmt {
             Stmt::Block(stmts) => {
                 self.environment = Environment::new_local(&self.environment);
@@ -175,6 +178,7 @@ impl Interpreter {
             Stmt::Expression(expr) => {
                 self.evaluate(expr)?;
             }
+            Stmt::Function(_name, _params, _body) => (),
             Stmt::If(condition, then_branch, else_branch) => {
                 if is_truthy(self.evaluate(condition)?) {
                     self.execute(then_branch)?;

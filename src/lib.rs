@@ -1,6 +1,7 @@
 mod callable;
 mod environment;
 mod expr;
+mod function;
 mod interpreter;
 mod literal;
 pub mod lox;

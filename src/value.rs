@@ -1,29 +1,36 @@
-// use core::fmt;
+use crate::function::Function;
+use crate::literal::Literal;
+use core::fmt;
 
-// #[derive(Debug)]
-// pub enum Value {
-//     Boolean(bool),
-//     Number(f64),
-//     String(String),
-//     Nil,
-//     Function(Function),
-// }
-
-// impl fmt::Display for Value {
-//     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-//         match self {
-//             Self::Number(n) => write!(f, "{n}"),
-//             Self::String(s) => write!(f, "{s}"),
-//             Self::Boolean(b) => write!(f, "{b}"),
-//             Self::Nil => write!(f, "nil"),
-//             Self::Function(_) => write!(f, "function"),
-//         }
-//     }
-// }
-
-// TODO: Implement From, Into method
-
+#[allow(dead_code)]
 #[derive(Clone, Debug, PartialEq, PartialOrd)]
-pub struct Function {
-    pub arity: usize,
+pub enum Value {
+    Boolean(bool),
+    Number(f64),
+    String(String),
+    Nil,
+    Function(Function),
+}
+
+impl From<Literal> for Value {
+    fn from(value: Literal) -> Self {
+        match value {
+            Literal::Boolean(b) => Value::Boolean(b),
+            Literal::Number(n) => Value::Number(n),
+            Literal::String(s) => Value::String(s),
+            Literal::Nil => Value::Nil,
+        }
+    }
+}
+
+impl fmt::Display for Value {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Self::Number(n) => write!(f, "{n}"),
+            Self::String(s) => write!(f, "{s}"),
+            Self::Boolean(b) => write!(f, "{b}"),
+            Self::Nil => write!(f, "nil"),
+            Self::Function(fun) => write!(f, "{fun}"),
+        }
+    }
 }

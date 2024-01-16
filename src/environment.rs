@@ -1,5 +1,6 @@
-use crate::literal::Literal as LoxValue;
+// use crate::literal::Literal as LoxValue;
 use crate::token::Token;
+use crate::value::Value as LoxValue;
 use anyhow::bail;
 use anyhow::Result;
 use std::collections::HashMap;

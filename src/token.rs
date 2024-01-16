@@ -2,7 +2,7 @@ use crate::literal::Literal;
 use crate::token_type::TokenType;
 use core::fmt;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, PartialOrd)]
 pub struct Token {
     pub token_type: TokenType,
     pub lexeme: String,

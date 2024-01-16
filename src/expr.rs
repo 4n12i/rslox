@@ -1,14 +1,14 @@
-use crate::literal::Literal;
 use crate::token::Token;
+use crate::value::Value;
 use core::fmt;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, PartialOrd)]
 pub enum Expr {
     Assign(Token, Box<Expr>),
     Binary(Box<Expr>, Token, Box<Expr>),
     Call(Box<Expr>, Token, Vec<Expr>),
     Grouping(Box<Expr>),
-    Literal(Literal),
+    Literal(Value),
     Logical(Box<Expr>, Token, Box<Expr>),
     Unary(Token, Box<Expr>),
     Variable(Token),
@@ -51,7 +51,7 @@ fn format_ast(expr: &Expr) -> String {
 
 #[cfg(test)]
 mod tests {
-    use crate::token_type::TokenType;
+    use crate::{literal::Literal, token_type::TokenType};
 
     use super::*;
     #[test]
@@ -59,10 +59,10 @@ mod tests {
         let e = format_ast(&Expr::Binary(
             Box::new(Expr::Unary(
                 Token::new(TokenType::Minus, "-", Literal::Nil, 1),
-                Box::new(Expr::Literal(Literal::Number(123f64))),
+                Box::new(Expr::Literal(Value::Number(123f64))),
             )),
             Token::new(TokenType::Star, "*", Literal::Nil, 1),
-            Box::new(Expr::Grouping(Box::new(Expr::Literal(Literal::Number(
+            Box::new(Expr::Grouping(Box::new(Expr::Literal(Value::Number(
                 45.67f64,
             ))))),
         ));

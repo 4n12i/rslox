@@ -2,10 +2,11 @@ use crate::expr::Expr;
 use crate::token::Token;
 use core::fmt;
 
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq, PartialOrd)]
 pub enum Stmt {
     Block(Vec<Stmt>),
     Expression(Box<Expr>),
+    Function(Token, Vec<Token>, Box<Stmt>),
     If(Box<Expr>, Box<Stmt>, Option<Box<Stmt>>),
     Print(Box<Expr>),
     Var(Token, Option<Box<Expr>>),
@@ -28,6 +29,14 @@ fn format_ast(stmt: &Stmt) -> String {
             format!("(block {})", decls.join(" "))
         }
         Stmt::Expression(expr) => format!("(; {})", expr),
+        Stmt::Function(name, params, body) => {
+            let p = params
+                .iter()
+                .map(|t| t.lexeme.to_string())
+                .collect::<Vec<String>>()
+                .join(" ");
+            format!("(fun {} ({}) {})", name.lexeme, p, format_ast(body))
+        }
         Stmt::If(condition, then_branch, else_branch) => match else_branch {
             Some(e) => format!("(if-else) {} {} {}", condition, then_branch, e),
             None => format!("(if {} {})", condition, then_branch),
