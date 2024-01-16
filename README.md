@@ -1,8 +1,8 @@
 # rslox
-Rust implementation of a Lox interpreter  
+Rust implementation of an interpreter for the Lox programming language  
 
 ## Usage
-```sh
+```
 # Run prompt
 $ cargo run 
 
@@ -11,7 +11,7 @@ $ cargo run <file>
 ```
 
 With debug log: 
-```sh 
+```
 $ RUST_LOG=debug cargo run
 ```
 

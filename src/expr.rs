@@ -6,6 +6,7 @@ use core::fmt;
 pub enum Expr {
     Assign(Token, Box<Expr>),
     Binary(Box<Expr>, Token, Box<Expr>),
+    Call(Box<Expr>, Token, Vec<Expr>),
     Grouping(Box<Expr>),
     Literal(Literal),
     Logical(Box<Expr>, Token, Box<Expr>),
@@ -28,6 +29,13 @@ fn format_ast(expr: &Expr) -> String {
             format_ast(left),
             format_ast(right)
         ),
+        Expr::Call(callee, _paren, arguments) => {
+            let mut str_args = vec![];
+            for argument in arguments {
+                str_args.push(format_ast(argument));
+            }
+            format!("(call {} {})", callee, str_args.join(" "))
+        }
         Expr::Grouping(expr) => format!("(group {})", format_ast(expr)),
         Expr::Literal(value) => value.to_string(),
         Expr::Logical(left, operator, right) => format!(

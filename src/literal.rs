@@ -1,11 +1,14 @@
+use crate::value::Function;
 use core::fmt;
 
+#[allow(dead_code)]
 #[derive(Clone, Debug, PartialEq, PartialOrd)]
 pub enum Literal {
     Boolean(bool),
     Number(f64),
     String(String),
     Nil,
+    Function(Function),
 }
 
 impl fmt::Display for Literal {
@@ -15,6 +18,7 @@ impl fmt::Display for Literal {
             Self::String(s) => write!(f, "{s}"),
             Self::Boolean(b) => write!(f, "{b}"),
             Self::Nil => write!(f, "nil"),
+            Self::Function(_) => write!(f, "fn"), // TODO: Remove later
         }
     }
 }

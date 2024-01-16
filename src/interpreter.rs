@@ -14,6 +14,8 @@ pub struct Interpreter {
 
 impl Interpreter {
     pub fn new() -> Self {
+        // let globals = Environment::new_global();
+        // globals.define("clock", )
         Self {
             environment: Environment::new_global(),
         }
@@ -95,6 +97,32 @@ impl Interpreter {
                         _ => bail!(report(operator, "Operands must be numbers.")),
                     },
                     _ => bail!("Error"), // Unreachable
+                }
+            }
+            Expr::Call(callee, paren, arguments) => {
+                let callee = self.evaluate(callee)?;
+
+                let mut value_args = Vec::new();
+                for argument in arguments {
+                    value_args.push(self.evaluate(argument)?);
+                }
+
+                // if callee != LoxValue::Function(_) {
+                //     bail!(report(paren, "Can only call functions and classes."));
+                // }
+
+                // if arguments.len() != callee.arity() {
+                //     bail!(report(paren, &format!("Expected {} arguments but got {}.", callee.arity(), arguments.len())))
+                // }
+
+                match callee {
+                    LoxValue::Function(f) => {
+                        if arguments.len() != f.arity {
+                            bail!("Error");
+                        }
+                        Ok(LoxValue::Nil)
+                    }
+                    _ => bail!(report(paren, "Can only call functions and classes.")),
                 }
             }
             Expr::Grouping(expr) => self.evaluate(expr),
