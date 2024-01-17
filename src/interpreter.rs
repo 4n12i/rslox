@@ -1,11 +1,11 @@
+use crate::callable::Callable;
 use crate::environment::Environment;
 use crate::expr::Expr;
-// use crate::literal::Literal as LoxValue;
-use crate::callable::Callable;
+use crate::function::Function;
 use crate::stmt::Stmt;
 use crate::token::Token;
 use crate::token_type::TokenType;
-use crate::value::Value as LoxValue;
+use crate::value::Value;
 use anyhow::bail;
 use anyhow::Result;
 use tracing::debug;
@@ -32,7 +32,7 @@ impl Interpreter {
         Ok(())
     }
 
-    fn evaluate(&mut self, expr: &Expr) -> Result<LoxValue> {
+    fn evaluate(&mut self, expr: &Expr) -> Result<Value> {
         match expr {
             Expr::Assign(name, value) => {
                 let value = self.evaluate(value)?;
@@ -43,60 +43,42 @@ impl Interpreter {
                 let left = self.evaluate(left)?;
                 let right = self.evaluate(right)?;
                 match operator.token_type {
-                    TokenType::BangEqual => Ok(LoxValue::Boolean(left.ne(&right))),
-                    TokenType::EqualEqual => Ok(LoxValue::Boolean(left.eq(&right))),
+                    TokenType::BangEqual => Ok(Value::Boolean(left.ne(&right))),
+                    TokenType::EqualEqual => Ok(Value::Boolean(left.eq(&right))),
                     TokenType::Greater => match (left, right) {
-                        (LoxValue::Number(n1), LoxValue::Number(n2)) => {
-                            Ok(LoxValue::Boolean(n1.gt(&n2)))
-                        }
+                        (Value::Number(n1), Value::Number(n2)) => Ok(Value::Boolean(n1.gt(&n2))),
                         _ => bail!(report(operator, "Operands must be numbers.")),
                     },
                     TokenType::GreaterEqual => match (left, right) {
-                        (LoxValue::Number(n1), LoxValue::Number(n2)) => {
-                            Ok(LoxValue::Boolean(n1.ge(&n2)))
-                        }
+                        (Value::Number(n1), Value::Number(n2)) => Ok(Value::Boolean(n1.ge(&n2))),
                         _ => bail!(report(operator, "Operands must be numbers.")),
                     },
                     TokenType::Less => match (left, right) {
-                        (LoxValue::Number(n1), LoxValue::Number(n2)) => {
-                            Ok(LoxValue::Boolean(n1.lt(&n2)))
-                        }
+                        (Value::Number(n1), Value::Number(n2)) => Ok(Value::Boolean(n1.lt(&n2))),
                         _ => bail!(report(operator, "Operands must be numbers.")),
                     },
                     TokenType::LessEqual => match (left, right) {
-                        (LoxValue::Number(n1), LoxValue::Number(n2)) => {
-                            Ok(LoxValue::Boolean(n1.le(&n2)))
-                        }
+                        (Value::Number(n1), Value::Number(n2)) => Ok(Value::Boolean(n1.le(&n2))),
                         _ => bail!(report(operator, "Operands must be numbers.")),
                     },
                     TokenType::Minus => match (left, right) {
-                        (LoxValue::Number(n1), LoxValue::Number(n2)) => {
-                            Ok(LoxValue::Number(n1 - n2))
-                        }
+                        (Value::Number(n1), Value::Number(n2)) => Ok(Value::Number(n1 - n2)),
                         _ => bail!("Operands must be numbers."),
                     },
                     TokenType::Plus => match (left, right) {
-                        (LoxValue::Number(n1), LoxValue::Number(n2)) => {
-                            Ok(LoxValue::Number(n1 + n2))
-                        }
-                        (LoxValue::String(s1), LoxValue::String(s2)) => {
-                            Ok(LoxValue::String(s1 + &s2))
-                        }
+                        (Value::Number(n1), Value::Number(n2)) => Ok(Value::Number(n1 + n2)),
+                        (Value::String(s1), Value::String(s2)) => Ok(Value::String(s1 + &s2)),
                         _ => bail!(report(
                             operator,
                             "Operands must be two numbers or two strings."
                         )),
                     },
                     TokenType::Slash => match (left, right) {
-                        (LoxValue::Number(n1), LoxValue::Number(n2)) => {
-                            Ok(LoxValue::Number(n1 / n2))
-                        }
+                        (Value::Number(n1), Value::Number(n2)) => Ok(Value::Number(n1 / n2)),
                         _ => bail!(report(operator, "Operands must be numbers.")),
                     },
                     TokenType::Star => match (left, right) {
-                        (LoxValue::Number(n1), LoxValue::Number(n2)) => {
-                            Ok(LoxValue::Number(n1 * n2))
-                        }
+                        (Value::Number(n1), Value::Number(n2)) => Ok(Value::Number(n1 * n2)),
                         _ => bail!(report(operator, "Operands must be numbers.")),
                     },
                     _ => bail!("Error"), // Unreachable
@@ -110,7 +92,7 @@ impl Interpreter {
                     value_args.push(self.evaluate(argument)?);
                 }
 
-                // if callee != LoxValue::Function(_) {
+                // if callee != Value::Function(_) {
                 //     bail!(report(paren, "Can only call functions and classes."));
                 // }
 
@@ -119,11 +101,11 @@ impl Interpreter {
                 // }
 
                 match callee {
-                    LoxValue::Function(f) => {
+                    Value::Function(f) => {
                         if arguments.len() != f.arity() {
                             bail!("Error");
                         }
-                        Ok(LoxValue::Nil)
+                        Ok(Value::Nil)
                     }
                     _ => bail!(report(paren, "Can only call functions and classes.")),
                 }
@@ -144,9 +126,9 @@ impl Interpreter {
             Expr::Unary(operator, right) => {
                 let right = self.evaluate(right)?;
                 match operator.token_type {
-                    TokenType::Bang => Ok(LoxValue::Boolean(!is_truthy(right))),
+                    TokenType::Bang => Ok(Value::Boolean(!is_truthy(right))),
                     TokenType::Minus => match right {
-                        LoxValue::Number(n) => Ok(LoxValue::Number(-n)),
+                        Value::Number(n) => Ok(Value::Number(-n)),
                         _ => bail!(report(operator, "Operand must be a number.")),
                     },
                     _ => bail!("Error"), // Unreachable
@@ -178,7 +160,11 @@ impl Interpreter {
             Stmt::Expression(expr) => {
                 self.evaluate(expr)?;
             }
-            Stmt::Function(_name, _params, _body) => (),
+            Stmt::Function(name, _params, _body) => {
+                let function = Function::new(stmt);
+                self.environment
+                    .define(&name.lexeme, &Value::Function(function))?;
+            }
             Stmt::If(condition, then_branch, else_branch) => {
                 if is_truthy(self.evaluate(condition)?) {
                     self.execute(then_branch)?;
@@ -192,7 +178,7 @@ impl Interpreter {
             Stmt::Var(token, expr) => {
                 let value = match expr {
                     Some(initializer) => self.evaluate(initializer)?,
-                    None => LoxValue::Nil,
+                    None => Value::Nil,
                 };
                 self.environment.define(&token.lexeme, &value)?;
             }
@@ -207,10 +193,10 @@ impl Interpreter {
 }
 
 // Only false and nil are falsey, everything else is truthy
-fn is_truthy(object: LoxValue) -> bool {
+fn is_truthy(object: Value) -> bool {
     match object {
-        LoxValue::Boolean(b) => b,
-        LoxValue::Nil => false,
+        Value::Boolean(b) => b,
+        Value::Nil => false,
         _ => true,
     }
 }

@@ -1,6 +1,5 @@
-// use crate::literal::Literal as LoxValue;
 use crate::token::Token;
-use crate::value::Value as LoxValue;
+use crate::value::Value;
 use anyhow::bail;
 use anyhow::Result;
 use std::collections::HashMap;
@@ -8,7 +7,7 @@ use std::collections::HashMap;
 #[derive(Clone, Debug)]
 pub struct Environment {
     pub enclosing: Option<Box<Environment>>,
-    pub values: HashMap<String, LoxValue>,
+    pub values: HashMap<String, Value>,
 }
 
 impl Environment {
@@ -29,12 +28,12 @@ impl Environment {
     }
 
     // Definition of variables. You can also redifine existing variables.
-    pub fn define(&mut self, name: &str, value: &LoxValue) -> Result<()> {
+    pub fn define(&mut self, name: &str, value: &Value) -> Result<()> {
         self.values.insert(name.to_string(), value.clone());
         Ok(())
     }
 
-    pub fn get(&self, name: &Token) -> Result<LoxValue> {
+    pub fn get(&self, name: &Token) -> Result<Value> {
         match self.values.get(&name.lexeme) {
             Some(value) => Ok(value.clone()),
             None => {
@@ -46,7 +45,7 @@ impl Environment {
         }
     }
 
-    pub fn assign(&mut self, name: &Token, value: &LoxValue) -> Result<()> {
+    pub fn assign(&mut self, name: &Token, value: &Value) -> Result<()> {
         if self.values.contains_key(&name.lexeme) {
             self.values.insert(name.lexeme.clone(), value.clone());
             return Ok(());

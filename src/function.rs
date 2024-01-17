@@ -15,7 +15,7 @@ pub struct Function {
 }
 
 impl Function {
-    pub fn _new(stmt: &Stmt) -> Self {
+    pub fn new(stmt: &Stmt) -> Self {
         match stmt {
             Stmt::Function(name, params, body) => Self {
                 name: name.clone(),

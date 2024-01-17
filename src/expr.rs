@@ -51,7 +51,8 @@ fn format_ast(expr: &Expr) -> String {
 
 #[cfg(test)]
 mod tests {
-    use crate::{literal::Literal, token_type::TokenType};
+    use crate::literal::Literal;
+    use crate::token_type::TokenType;
 
     use super::*;
     #[test]
