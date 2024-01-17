@@ -3,6 +3,7 @@ use crate::value::Value;
 use anyhow::Result;
 
 pub trait Callable {
+    // Number of arguments
     fn arity(&self) -> usize;
     fn call(&self, interpreter: &mut Interpreter, arguments: &[Value]) -> Result<Value>;
 }

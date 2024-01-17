@@ -9,43 +9,75 @@ use core::fmt;
 
 #[derive(Clone, Debug, PartialEq, PartialOrd)]
 pub struct Function {
-    name: Token,
-    parameters: Vec<Token>,
-    body: Stmt,
+    declaration: Declaration,
+    // initializer: bool,
+    // closure: Environment,
+}
+
+#[derive(Clone, Debug, PartialEq, PartialOrd)]
+enum Declaration {
+    Lox(Token, Vec<Token>, Box<Stmt>), // User-defined function
+    Primitive(fn(&mut Interpreter, &[Value]) -> Result<Value>, usize),
+}
+
+// Convert Stmt::Function to Declaration::Lox
+impl From<Stmt> for Declaration {
+    fn from(value: Stmt) -> Self {
+        match value {
+            Stmt::Function(name, params, body) => Declaration::Lox(name, params, body),
+            _ => unreachable!(),
+        }
+    }
 }
 
 impl Function {
     pub fn new(stmt: &Stmt) -> Self {
-        match stmt {
-            Stmt::Function(name, params, body) => Self {
-                name: name.clone(),
-                parameters: params.clone(),
-                body: *body.clone(),
-            },
-            _ => unreachable!(),
+        Self {
+            declaration: stmt.clone().into(),
+        }
+    }
+
+    pub fn new_primitive(
+        function: fn(&mut Interpreter, &[Value]) -> Result<Value>,
+        arity: usize,
+    ) -> Self {
+        Self {
+            declaration: Declaration::Primitive(function, arity),
         }
     }
 }
 
 impl fmt::Display for Function {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "<fn {}>", self.name.lexeme)
+        match &self.declaration {
+            Declaration::Lox(name, _, _) => write!(f, "<fn {}>", name.lexeme),
+            Declaration::Primitive(_, _) => write!(f, "<native fn>"),
+        }
     }
 }
 
 impl Callable for Function {
     fn arity(&self) -> usize {
-        self.parameters.len()
+        // self.parameters.len()
+        match &self.declaration {
+            Declaration::Lox(_, params, _) => params.len(),
+            Declaration::Primitive(_, arity) => *arity,
+        }
     }
 
     fn call(&self, interpreter: &mut Interpreter, arguments: &[Value]) -> Result<Value> {
-        let mut environment = Environment::new_local(&interpreter.globals);
-        for (param, arg) in self.parameters.iter().zip(arguments) {
-            environment.define(&param.lexeme, arg)?;
-        }
+        match &self.declaration {
+            Declaration::Lox(_, params, body) => {
+                let mut environment = Environment::new_local(&interpreter.globals);
+                for (param, arg) in params.iter().zip(arguments) {
+                    environment.define(&param.lexeme, arg)?;
+                }
 
-        // Execute block statement
-        interpreter.execute(&self.body)?;
-        Ok(Value::Nil)
+                // Execute block statement
+                interpreter.execute(body)?;
+                Ok(Value::Nil)
+            }
+            Declaration::Primitive(function, _) => function(interpreter, arguments),
+        }
     }
 }

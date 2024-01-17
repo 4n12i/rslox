@@ -17,10 +17,26 @@ pub struct Interpreter {
 
 impl Interpreter {
     pub fn new() -> Self {
-        // globals.define("clock", )
+        let mut globals = Environment::new_global();
+
+        fn clock(_interpreter: &mut Interpreter, _arguments: &[Value]) -> Result<Value> {
+            use std::time::SystemTime;
+            use std::time::UNIX_EPOCH;
+
+            let current_time = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .expect("Time went backwards");
+            let milliseconds = current_time.as_millis() as f64;
+            Ok(Value::Number(milliseconds / 1000.0))
+        }
+        let function = Function::new_primitive(clock, 0);
+        globals
+            .define("clock", &Value::Function(function))
+            .expect("Failed to define a primitive function.");
+
         Self {
-            globals: Environment::new_global(),
-            environment: Environment::new_global(),
+            globals: globals.clone(),
+            environment: globals.clone(),
         }
     }
 
