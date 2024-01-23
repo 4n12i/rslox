@@ -199,7 +199,8 @@ impl Parser {
                     .clone();
                 parameters.push(p);
 
-                if self.is_match(&[TokenType::Comma]) {
+                if !self.is_match(&[TokenType::Comma]) {
+                    // info!("[function] expect=comma, peek={}", self.peek());
                     break;
                 }
             }
@@ -346,7 +347,7 @@ impl Parser {
                 }
 
                 arguments.push(*self.expression()?);
-                if self.is_match(&[TokenType::Comma]) {
+                if !self.is_match(&[TokenType::Comma]) {
                     break;
                 }
             }

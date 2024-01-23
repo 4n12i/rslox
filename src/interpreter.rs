@@ -108,20 +108,19 @@ impl Interpreter {
                     value_args.push(self.evaluate(argument)?);
                 }
 
-                // if callee != Value::Function(_) {
-                //     bail!(report(paren, "Can only call functions and classes."));
-                // }
-
-                // if arguments.len() != callee.arity() {
-                //     bail!(report(paren, &format!("Expected {} arguments but got {}.", callee.arity(), arguments.len())))
-                // }
-
                 match callee {
                     Value::Function(f) => {
                         if arguments.len() != f.arity() {
-                            bail!("Error");
+                            bail!(report(
+                                paren,
+                                &format!(
+                                    "Expected {} arguments but get {}.",
+                                    f.arity(),
+                                    arguments.len()
+                                )
+                            ));
                         }
-                        Ok(Value::Nil)
+                        f.call(self, &value_args)
                     }
                     _ => bail!(report(paren, "Can only call functions and classes.")),
                 }
@@ -157,7 +156,6 @@ impl Interpreter {
     pub fn execute(&mut self, stmt: &Stmt) -> Result<()> {
         match stmt {
             Stmt::Block(stmts) => {
-                // self.execute_block(stmts, &Environment::new_local(&self.environment))?;
                 self.environment = Environment::new_local(&self.environment);
 
                 for stmt in stmts {

@@ -58,7 +58,6 @@ impl fmt::Display for Function {
 
 impl Callable for Function {
     fn arity(&self) -> usize {
-        // self.parameters.len()
         match &self.declaration {
             Declaration::Lox(_, params, _) => params.len(),
             Declaration::Primitive(_, arity) => *arity,
