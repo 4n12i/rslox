@@ -74,8 +74,13 @@ impl Callable for Function {
                 }
 
                 // Execute block statement
-                interpreter.execute(body)?;
-                Ok(Value::Nil)
+                match **body {
+                    Stmt::Block(ref stmts) => {
+                        interpreter.execute_block(stmts, &environment)?;
+                        Ok(Value::Nil)
+                    }
+                    _ => unreachable!(),
+                }
             }
             Declaration::Primitive(function, _) => function(interpreter, arguments),
         }

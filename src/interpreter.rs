@@ -157,6 +157,7 @@ impl Interpreter {
     pub fn execute(&mut self, stmt: &Stmt) -> Result<()> {
         match stmt {
             Stmt::Block(stmts) => {
+                // self.execute_block(stmts, &Environment::new_local(&self.environment))?;
                 self.environment = Environment::new_local(&self.environment);
 
                 for stmt in stmts {
@@ -204,6 +205,20 @@ impl Interpreter {
                 }
             }
         }
+        Ok(())
+    }
+
+    pub fn execute_block(&mut self, stmts: &[Stmt], environment: &Environment) -> Result<()> {
+        let previous = Box::new(self.environment.clone());
+        self.environment = environment.clone();
+        for stmt in stmts {
+            if let Err(e) = self.execute(stmt) {
+                self.environment = *previous;
+                bail!(e);
+            }
+        }
+
+        self.environment = *previous;
         Ok(())
     }
 }
