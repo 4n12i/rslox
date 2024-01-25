@@ -1,8 +1,6 @@
+use crate::result::{Error, Result};
 use crate::token::Token;
 use crate::value::Value;
-// use anyhow::bail;
-// use anyhow::Result;
-use crate::result::{Error, Result};
 use std::collections::HashMap;
 
 #[derive(Clone, Debug)]
@@ -41,7 +39,6 @@ impl Environment {
                 if let Some(ref e) = self.enclosing {
                     return e.get(name);
                 }
-                // bail!("Undefined variable '{}'", name.lexeme)
                 Err(Error::Runtime(
                     name.clone(),
                     format!("Undefined variable '{}'", name.lexeme),
@@ -58,7 +55,6 @@ impl Environment {
         if let Some(ref mut e) = self.enclosing {
             return e.assign(name, value);
         }
-        // bail!("Undefined variable '{}'", name.lexeme)
         Err(Error::Runtime(
             name.clone(),
             format!("Undefined variable '{}'", name.lexeme),

@@ -1,12 +1,10 @@
 use crate::expr::Expr;
+use crate::result::Error;
+use crate::result::Result;
 use crate::stmt::Stmt;
 use crate::token::Token;
 use crate::token_type::TokenType;
 use crate::value::Value;
-// use anyhow::bail;
-// use anyhow::Result;
-use crate::result::Error;
-use crate::result::Result;
 use tracing::debug;
 
 pub struct Parser {
@@ -50,7 +48,6 @@ impl Parser {
             Err(error) => {
                 // TODO: Return null???
                 self.synchronize()?;
-                // bail!("{error}")
                 Err(error)
             }
         }
@@ -210,7 +207,6 @@ impl Parser {
         if !self.check(TokenType::RightParen) {
             loop {
                 if parameters.len() >= 255 {
-                    // bail!(report(self.peek(), "Can't have more than 255 parameters."));
                     return Err(Error::Parse(
                         self.peek().clone(),
                         "Can't have more than 255 parameters.".to_string(),
@@ -264,7 +260,7 @@ impl Parser {
                         equals,
                         "Invalid assignment target".to_string(),
                     ))
-                } // bail!(report(&equals, "Invalid assignment target")),
+                }
             }
         }
 
@@ -370,7 +366,6 @@ impl Parser {
         if !self.check(TokenType::RightParen) {
             loop {
                 if arguments.len() >= 255 {
-                    // bail!(report(self.peek(), "Can't have more than 255 arguments."));
                     return Err(Error::Parse(
                         self.peek().clone(),
                         "Can't have more than 255 arguments.".to_string(),
@@ -406,13 +401,7 @@ impl Parser {
 
     // primary -> NUMBER | STRING | "true" | "false" | "nil" | "(" expression ")" | IDENTIFIER ;
     fn primary(&mut self) -> Result<Expr> {
-        if self.is_match(&[
-            TokenType::Number,
-            TokenType::String,
-            // TokenType::True,
-            // TokenType::False,
-            TokenType::Nil,
-        ]) {
+        if self.is_match(&[TokenType::Number, TokenType::String, TokenType::Nil]) {
             return Ok(Expr::Literal(self.previous().literal.clone().into()));
         }
 
@@ -433,7 +422,6 @@ impl Parser {
             return Ok(Expr::Grouping(expr));
         }
 
-        // bail!(report(self.peek(), "Expect expression."))
         Err(Error::Parse(
             self.peek().clone(),
             "Expect expression.".to_string(),
@@ -470,7 +458,6 @@ impl Parser {
         if self.peek().token_type == token_type {
             return Ok(self.advance());
         }
-        // bail!(report(self.peek(), message))
         Err(Error::Parse(self.peek().clone(), message.to_string()))
     }
 
@@ -509,11 +496,3 @@ impl Parser {
         self.peek().token_type == TokenType::Eof
     }
 }
-
-// fn report(token: &Token, message: &str) -> String {
-//     let place = match token.token_type {
-//         TokenType::Eof => " at end".to_string(),
-//         _ => format!(" at '{}'", token.lexeme),
-//     };
-//     format!("[line {}] Error{}: {}", token.line, place, message)
-// }

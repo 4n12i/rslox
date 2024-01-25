@@ -1,35 +1,10 @@
 use crate::literal::Literal;
-use crate::token::Token;
-use crate::token_type::TokenType;
-// use anyhow::bail;
-// use anyhow::Result;
 use crate::result::Error;
 use crate::result::Result;
-// use once_cell::sync::Lazy;
-// use std::collections::HashMap;
+use crate::token::Token;
+use crate::token_type::TokenType;
 use crate::token_type::KEYWORDS;
 use tracing::debug;
-
-// static KEYWORDS: Lazy<HashMap<&'static str, TokenType>> = Lazy::new(|| {
-//     HashMap::from([
-//         ("and", TokenType::And),
-//         ("class", TokenType::Class),
-//         ("else", TokenType::Else),
-//         ("false", TokenType::False),
-//         ("fun", TokenType::Fun),
-//         ("for", TokenType::For),
-//         ("if", TokenType::If),
-//         ("nil", TokenType::Nil),
-//         ("or", TokenType::Or),
-//         ("print", TokenType::Print),
-//         ("return", TokenType::Return),
-//         ("super", TokenType::Super),
-//         ("this", TokenType::This),
-//         ("true", TokenType::True),
-//         ("var", TokenType::Var),
-//         ("while", TokenType::While),
-//     ])
-// });
 
 #[derive(Debug)]
 pub struct Scanner {
@@ -62,7 +37,7 @@ impl Scanner {
                     debug!("{t}");
                     tokens.push(t);
                 }
-                Err(e) => return Err(e), // bail!("{e}"),
+                Err(e) => return Err(e),
                 _ => (),
             }
         }
@@ -129,7 +104,6 @@ impl Scanner {
                     let t = self.get_identifier()?;
                     self.create_token(t)?
                 } else {
-                    // bail!(report(self.line, "Unexpected character."))
                     return Err(Error::Lexical(
                         self.line,
                         "Unexpected character.".to_string(),
@@ -180,7 +154,6 @@ impl Scanner {
         }
 
         if self.is_at_end() {
-            // bail!(report(self.line, "Unterminated string."));
             return Err(Error::Lexical(
                 self.line,
                 "Unterminated string.".to_string(),
@@ -246,10 +219,6 @@ impl Scanner {
             .get(self.start..self.current)
             .expect("Failed to get a lexeme from source.");
         Ok(Token::new(token_type, lexeme, literal, self.line))
-        // match self.source.get(self.start..self.current) {
-        //     Some(t) => Ok(Token::new(token_type, t, literal, self.line)),
-        //     None => bail!("Failed to get a lexeme from source code"),
-        // }
     }
 }
 
@@ -263,10 +232,6 @@ fn is_alpha(c: char) -> bool {
 fn is_alpha_numeric(c: char) -> bool {
     c.is_ascii_alphanumeric() || c == '_'
 }
-
-// fn report(line: usize, message: &str) -> String {
-//     format!("[line {}] Error: {}", line, message)
-// }
 
 #[cfg(test)]
 mod tests {

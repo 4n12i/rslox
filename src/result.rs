@@ -4,7 +4,6 @@ use crate::value::Value;
 use std::fmt;
 use std::io;
 use std::result;
-// use std::error::Error;
 
 pub type Result<T> = result::Result<T, Error>;
 

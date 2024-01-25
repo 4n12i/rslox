@@ -1,11 +1,10 @@
 use crate::callable::Callable;
 use crate::environment::Environment;
 use crate::interpreter::Interpreter;
+use crate::result::Result;
 use crate::stmt::Stmt;
 use crate::token::Token;
 use crate::value::Value;
-// use anyhow::Result;
-use crate::result::Result;
 use std::fmt;
 
 #[derive(Clone, Debug, PartialEq, PartialOrd)]

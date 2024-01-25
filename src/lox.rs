@@ -1,9 +1,7 @@
 use crate::interpreter::Interpreter;
 use crate::parser::Parser;
-use crate::scanner::Scanner;
-// use anyhow::Context;
-// use anyhow::Result;
 use crate::result::Result;
+use crate::scanner::Scanner;
 use std::fs;
 use std::io::BufRead;
 use std::io::Write;

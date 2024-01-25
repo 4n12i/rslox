@@ -2,14 +2,11 @@ use crate::callable::Callable;
 use crate::environment::Environment;
 use crate::expr::Expr;
 use crate::function::Function;
+use crate::result::Error;
+use crate::result::Result;
 use crate::stmt::Stmt;
 use crate::token_type::TokenType;
 use crate::value::Value;
-// use tracing::debug;
-// use anyhow::bail;
-// use anyhow::Result;
-use crate::result::Error;
-use crate::result::Result;
 use std::default::Default;
 
 pub struct Interpreter {
@@ -49,7 +46,6 @@ impl Interpreter {
 
     pub fn run(&mut self, statements: &[Stmt]) -> Result<()> {
         for statement in statements {
-            // debug!("[interpreter_run] stmt >> {}", statement);
             self.execute(statement)?;
         }
         Ok(())
@@ -73,35 +69,35 @@ impl Interpreter {
                         _ => Err(Error::Runtime(
                             operator.clone(),
                             "Operands must be numbers.".to_string(),
-                        )), // bail!(report(operator, "Operands must be numbers.")),
+                        )),
                     },
                     TokenType::GreaterEqual => match (left, right) {
                         (Value::Number(n1), Value::Number(n2)) => Ok(Value::Boolean(n1.ge(&n2))),
                         _ => Err(Error::Runtime(
                             operator.clone(),
                             "Operands must be numbers.".to_string(),
-                        )), // bail!(report(operator, "Operands must be numbers.")),
+                        )),
                     },
                     TokenType::Less => match (left, right) {
                         (Value::Number(n1), Value::Number(n2)) => Ok(Value::Boolean(n1.lt(&n2))),
                         _ => Err(Error::Runtime(
                             operator.clone(),
                             "Operands must be numbers.".to_string(),
-                        )), // bail!(report(operator, "Operands must be numbers.")),
+                        )),
                     },
                     TokenType::LessEqual => match (left, right) {
                         (Value::Number(n1), Value::Number(n2)) => Ok(Value::Boolean(n1.le(&n2))),
                         _ => Err(Error::Runtime(
                             operator.clone(),
                             "Operands must be numbers.".to_string(),
-                        )), // bail!(report(operator, "Operands must be numbers.")),
+                        )),
                     },
                     TokenType::Minus => match (left, right) {
                         (Value::Number(n1), Value::Number(n2)) => Ok(Value::Number(n1 - n2)),
                         _ => Err(Error::Runtime(
                             operator.clone(),
                             "Operands must be numbers.".to_string(),
-                        )), // bail!("Operands must be numbers."),
+                        )),
                     },
                     TokenType::Plus => match (left, right) {
                         (Value::Number(n1), Value::Number(n2)) => Ok(Value::Number(n1 + n2)),
@@ -110,24 +106,20 @@ impl Interpreter {
                             operator.clone(),
                             "Operands must be two numbers or two strings.".to_string(),
                         )),
-                        // bail!(report(
-                        //     operator,
-                        //     "Operands must be two numbers or two strings."
-                        // )),
                     },
                     TokenType::Slash => match (left, right) {
                         (Value::Number(n1), Value::Number(n2)) => Ok(Value::Number(n1 / n2)),
                         _ => Err(Error::Runtime(
                             operator.clone(),
                             "Operands must be numbers.".to_string(),
-                        )), // bail!(report(operator, "Operands must be numbers.")),
+                        )),
                     },
                     TokenType::Star => match (left, right) {
                         (Value::Number(n1), Value::Number(n2)) => Ok(Value::Number(n1 * n2)),
                         _ => Err(Error::Runtime(
                             operator.clone(),
                             "Operands must be numbers.".to_string(),
-                        )), // bail!(report(operator, "Operands must be numbers.")),
+                        )),
                     },
                     _ => unreachable!(),
                 }
@@ -143,14 +135,6 @@ impl Interpreter {
                 match callee {
                     Value::Function(f) => {
                         if arguments.len() != f.arity() {
-                            // bail!(report(
-                            //     paren,
-                            //     &format!(
-                            //         "Expected {} arguments but get {}.",
-                            //         f.arity(),
-                            //         arguments.len()
-                            //     )
-                            // ));
                             return Err(Error::Runtime(
                                 paren.clone(),
                                 format!(
@@ -165,7 +149,7 @@ impl Interpreter {
                     _ => Err(Error::Runtime(
                         paren.clone(),
                         "Can only call functions and classes.".to_string(),
-                    )), // bail!(report(paren, "Can only call functions and classes.")),
+                    )),
                 }
             }
             Expr::Grouping(expr) => self.evaluate(expr),
@@ -190,7 +174,7 @@ impl Interpreter {
                         _ => Err(Error::Runtime(
                             operator.clone(),
                             "Operand must be a number.".to_string(),
-                        )), // bail!(report(operator, "Operand must be a number.")),
+                        )),
                     },
                     _ => unreachable!(),
                 }
@@ -206,7 +190,6 @@ impl Interpreter {
 
                 for stmt in stmts {
                     if let Err(e) = self.execute(stmt) {
-                        // .is_err() {
                         let parent = self
                             .environment
                             .enclosing
@@ -214,10 +197,6 @@ impl Interpreter {
                             .expect("Failed to get parent environment.");
                         self.environment = *parent.clone();
                         return Err(e);
-                        // match self.environment.enclosing.as_ref() {
-                        //     Some(env) => self.environment = *env.clone(),
-                        //     None => bail!("Undefined variable"),
-                        // }
                     }
                 }
 
@@ -227,10 +206,6 @@ impl Interpreter {
                     .as_ref()
                     .expect("Failed to get parent environment.");
                 self.environment = *parent.clone();
-                // match self.environment.enclosing.as_ref() {
-                //     Some(env) => self.environment = *env.clone(),
-                //     None => bail!("Undefined variable"),
-                // }
             }
             Stmt::Expression(expr) => {
                 self.evaluate(expr)?;
@@ -279,7 +254,6 @@ impl Interpreter {
         for stmt in stmts {
             if let Err(e) = self.execute(stmt) {
                 self.environment = *previous;
-                // bail!(e);
                 return Err(e);
             }
         }
@@ -297,7 +271,3 @@ fn is_truthy(object: Value) -> bool {
         _ => true,
     }
 }
-
-// fn report(token: &Token, message: &str) -> String {
-//     format!("{}\n[line {}]", message, token.line)
-// }

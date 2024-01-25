@@ -1,7 +1,5 @@
 extern crate rslox;
 
-// use anyhow::bail;
-// use anyhow::Result;
 use rslox::lox::Lox;
 use rslox::result::Error;
 use rslox::result::Result;
