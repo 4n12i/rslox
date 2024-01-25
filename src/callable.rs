@@ -1,6 +1,7 @@
 use crate::interpreter::Interpreter;
 use crate::value::Value;
-use anyhow::Result;
+// use anyhow::Result;
+use crate::result::Result;
 
 pub trait Callable {
     // Number of arguments

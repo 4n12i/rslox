@@ -1,8 +1,7 @@
 use crate::function::Function;
 use crate::literal::Literal;
-use core::fmt;
+use std::fmt;
 
-#[allow(dead_code)]
 #[derive(Clone, Debug, PartialEq, PartialOrd)]
 pub enum Value {
     Boolean(bool),
@@ -15,7 +14,6 @@ pub enum Value {
 impl From<Literal> for Value {
     fn from(value: Literal) -> Self {
         match value {
-            Literal::Boolean(b) => Value::Boolean(b),
             Literal::Number(n) => Value::Number(n),
             Literal::String(s) => Value::String(s),
             Literal::Nil => Value::Nil,
@@ -26,9 +24,9 @@ impl From<Literal> for Value {
 impl fmt::Display for Value {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
+            Self::Boolean(b) => write!(f, "{b}"),
             Self::Number(n) => write!(f, "{n}"),
             Self::String(s) => write!(f, "{s}"),
-            Self::Boolean(b) => write!(f, "{b}"),
             Self::Nil => write!(f, "nil"),
             Self::Function(fun) => write!(f, "{fun}"),
         }

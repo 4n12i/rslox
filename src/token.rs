@@ -1,6 +1,6 @@
 use crate::literal::Literal;
 use crate::token_type::TokenType;
-use core::fmt;
+use std::fmt;
 
 #[derive(Clone, Debug, PartialEq, PartialOrd)]
 pub struct Token {

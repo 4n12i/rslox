@@ -1,8 +1,10 @@
 extern crate rslox;
 
-use anyhow::bail;
-use anyhow::Result;
+// use anyhow::bail;
+// use anyhow::Result;
 use rslox::lox::Lox;
+use rslox::result::Error;
+use rslox::result::Result;
 use std::env;
 
 fn main() -> Result<()> {
@@ -14,6 +16,6 @@ fn main() -> Result<()> {
     match args.len() {
         0 => Lox::run_prompt(),
         1 => Lox::run_file(&args[0]),
-        _ => bail!("Usage: rslox [script]"),
+        _ => Err(Error::Usage),
     }
 }

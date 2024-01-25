@@ -4,8 +4,9 @@ use crate::interpreter::Interpreter;
 use crate::stmt::Stmt;
 use crate::token::Token;
 use crate::value::Value;
-use anyhow::Result;
-use core::fmt;
+// use anyhow::Result;
+use crate::result::Result;
+use std::fmt;
 
 #[derive(Clone, Debug, PartialEq, PartialOrd)]
 pub struct Function {
@@ -16,15 +17,15 @@ pub struct Function {
 
 #[derive(Clone, Debug, PartialEq, PartialOrd)]
 enum Declaration {
-    Lox(Token, Vec<Token>, Box<Stmt>), // User-defined function
+    UserDefined(Token, Vec<Token>, Box<Stmt>), // User-defined function
     Primitive(fn(&mut Interpreter, &[Value]) -> Result<Value>, usize),
 }
 
-// Convert Stmt::Function to Declaration::Lox
+// Convert Stmt::Function to Declaration::UserDefined
 impl From<Stmt> for Declaration {
     fn from(value: Stmt) -> Self {
         match value {
-            Stmt::Function(name, params, body) => Declaration::Lox(name, params, body),
+            Stmt::Function(name, params, body) => Declaration::UserDefined(name, params, body),
             _ => unreachable!(),
         }
     }
@@ -50,7 +51,7 @@ impl Function {
 impl fmt::Display for Function {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match &self.declaration {
-            Declaration::Lox(name, _, _) => write!(f, "<fn {}>", name.lexeme),
+            Declaration::UserDefined(name, _, _) => write!(f, "<fn {}>", name.lexeme),
             Declaration::Primitive(_, _) => write!(f, "<native fn>"),
         }
     }
@@ -59,14 +60,14 @@ impl fmt::Display for Function {
 impl Callable for Function {
     fn arity(&self) -> usize {
         match &self.declaration {
-            Declaration::Lox(_, params, _) => params.len(),
+            Declaration::UserDefined(_, params, _) => params.len(),
             Declaration::Primitive(_, arity) => *arity,
         }
     }
 
     fn call(&self, interpreter: &mut Interpreter, arguments: &[Value]) -> Result<Value> {
         match &self.declaration {
-            Declaration::Lox(_, params, body) => {
+            Declaration::UserDefined(_, params, body) => {
                 let mut environment = Environment::new_local(&interpreter.globals);
                 for (param, arg) in params.iter().zip(arguments) {
                     environment.define(&param.lexeme, arg)?;

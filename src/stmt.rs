@@ -1,6 +1,6 @@
 use crate::expr::Expr;
 use crate::token::Token;
-use core::fmt;
+use std::fmt;
 
 #[derive(Clone, Debug, PartialEq, PartialOrd)]
 pub enum Stmt {
@@ -9,6 +9,7 @@ pub enum Stmt {
     Function(Token, Vec<Token>, Box<Stmt>),
     If(Box<Expr>, Box<Stmt>, Option<Box<Stmt>>),
     Print(Box<Expr>),
+    Return(Token, Option<Expr>),
     Var(Token, Option<Box<Expr>>),
     While(Box<Expr>, Box<Stmt>),
 }
@@ -42,6 +43,10 @@ fn format_ast(stmt: &Stmt) -> String {
             None => format!("(if {} {})", condition, then_branch),
         },
         Stmt::Print(value) => format!("(print {})", value),
+        Stmt::Return(_keyword, value) => match value {
+            Some(v) => format!("(return {v})"),
+            None => "(return)".to_string(),
+        },
         Stmt::Var(name, initializer) => match initializer {
             Some(i) => format!("(var {} = {})", name.lexeme, i),
             None => format!("(var {})", name.lexeme),

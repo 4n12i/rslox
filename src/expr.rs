@@ -1,6 +1,6 @@
 use crate::token::Token;
 use crate::value::Value;
-use core::fmt;
+use std::fmt;
 
 #[derive(Clone, Debug, PartialEq, PartialOrd)]
 pub enum Expr {

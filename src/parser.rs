@@ -3,8 +3,10 @@ use crate::stmt::Stmt;
 use crate::token::Token;
 use crate::token_type::TokenType;
 use crate::value::Value;
-use anyhow::bail;
-use anyhow::Result;
+// use anyhow::bail;
+// use anyhow::Result;
+use crate::result::Error;
+use crate::result::Result;
 use tracing::debug;
 
 pub struct Parser {
@@ -36,24 +38,25 @@ impl Parser {
 
     // declaration -> fun_decl | var_decl | statement ;
     fn declaration(&mut self) -> Result<Stmt> {
-        let re = if self.is_match(&[TokenType::Fun]) {
+        let result = if self.is_match(&[TokenType::Fun]) {
             self.function("function")
         } else if self.is_match(&[TokenType::Var]) {
             self.var_declaration()
         } else {
             self.statement()
         };
-        match re {
+        match result {
             Ok(stmt) => Ok(stmt),
             Err(error) => {
                 // TODO: Return null???
                 self.synchronize()?;
-                bail!("{error}")
+                // bail!("{error}")
+                Err(error)
             }
         }
     }
 
-    // statement -> expr_stmt | for_stmt | if_stmt | print_stmt | while_stmt | block ;
+    // statement -> expr_stmt | for_stmt | if_stmt | print_stmt | return_stmt | while_stmt | block ;
     fn statement(&mut self) -> Result<Stmt> {
         if self.is_match(&[TokenType::For]) {
             return self.for_statement();
@@ -63,6 +66,9 @@ impl Parser {
         }
         if self.is_match(&[TokenType::Print]) {
             return self.print_statement();
+        }
+        if self.is_match(&[TokenType::Return]) {
+            return self.return_statement();
         }
         if self.is_match(&[TokenType::While]) {
             return self.while_statement();
@@ -141,6 +147,19 @@ impl Parser {
         Ok(Stmt::Print(value))
     }
 
+    // return_stmt -> "return" expression? ";" ;
+    fn return_statement(&mut self) -> Result<Stmt> {
+        let keyword = self.previous().clone();
+        let value = if !self.check(TokenType::Semicolon) {
+            Some(*self.expression()?)
+        } else {
+            None
+        };
+
+        self.consume(TokenType::Semicolon, "Expect ';' after return value.")?;
+        Ok(Stmt::Return(keyword, value))
+    }
+
     // var_decl -> "var" IDENTIFIER ( "=" expression )? ";" ;
     fn var_declaration(&mut self) -> Result<Stmt> {
         let name = self
@@ -191,7 +210,11 @@ impl Parser {
         if !self.check(TokenType::RightParen) {
             loop {
                 if parameters.len() >= 255 {
-                    bail!(report(self.peek(), "Can't have more than 255 parameters."));
+                    // bail!(report(self.peek(), "Can't have more than 255 parameters."));
+                    return Err(Error::Parse(
+                        self.peek().clone(),
+                        "Can't have more than 255 parameters.".to_string(),
+                    ));
                 }
 
                 let p = self
@@ -200,7 +223,6 @@ impl Parser {
                 parameters.push(p);
 
                 if !self.is_match(&[TokenType::Comma]) {
-                    // info!("[function] expect=comma, peek={}", self.peek());
                     break;
                 }
             }
@@ -237,7 +259,12 @@ impl Parser {
 
             match *expr {
                 Expr::Variable(name) => return Ok(Box::new(Expr::Assign(name, value))),
-                _ => bail!(report(&equals, "Invalid assignment target")),
+                _ => {
+                    return Err(Error::Parse(
+                        equals,
+                        "Invalid assignment target".to_string(),
+                    ))
+                } // bail!(report(&equals, "Invalid assignment target")),
             }
         }
 
@@ -343,7 +370,11 @@ impl Parser {
         if !self.check(TokenType::RightParen) {
             loop {
                 if arguments.len() >= 255 {
-                    bail!(report(self.peek(), "Can't have more than 255 arguments."));
+                    // bail!(report(self.peek(), "Can't have more than 255 arguments."));
+                    return Err(Error::Parse(
+                        self.peek().clone(),
+                        "Can't have more than 255 arguments.".to_string(),
+                    ));
                 }
 
                 arguments.push(*self.expression()?);
@@ -378,11 +409,18 @@ impl Parser {
         if self.is_match(&[
             TokenType::Number,
             TokenType::String,
-            TokenType::True,
-            TokenType::False,
+            // TokenType::True,
+            // TokenType::False,
             TokenType::Nil,
         ]) {
             return Ok(Expr::Literal(self.previous().literal.clone().into()));
+        }
+
+        if self.is_match(&[TokenType::False]) {
+            return Ok(Expr::Literal(Value::Boolean(false)));
+        }
+        if self.is_match(&[TokenType::True]) {
+            return Ok(Expr::Literal(Value::Boolean(true)));
         }
 
         if self.is_match(&[TokenType::Identifier]) {
@@ -395,7 +433,11 @@ impl Parser {
             return Ok(Expr::Grouping(expr));
         }
 
-        bail!(report(self.peek(), "Expect expression."))
+        // bail!(report(self.peek(), "Expect expression."))
+        Err(Error::Parse(
+            self.peek().clone(),
+            "Expect expression.".to_string(),
+        ))
     }
 
     fn synchronize(&mut self) -> Result<()> {
@@ -428,7 +470,8 @@ impl Parser {
         if self.peek().token_type == token_type {
             return Ok(self.advance());
         }
-        bail!(report(self.peek(), message))
+        // bail!(report(self.peek(), message))
+        Err(Error::Parse(self.peek().clone(), message.to_string()))
     }
 
     fn is_match(&mut self, token_types: &[TokenType]) -> bool {
@@ -467,10 +510,10 @@ impl Parser {
     }
 }
 
-fn report(token: &Token, message: &str) -> String {
-    let place = match token.token_type {
-        TokenType::Eof => " at end".to_string(),
-        _ => format!(" at '{}'", token.lexeme),
-    };
-    format!("[line {}] Error{}: {}", token.line, place, message)
-}
+// fn report(token: &Token, message: &str) -> String {
+//     let place = match token.token_type {
+//         TokenType::Eof => " at end".to_string(),
+//         _ => format!(" at '{}'", token.lexeme),
+//     };
+//     format!("[line {}] Error{}: {}", token.line, place, message)
+// }

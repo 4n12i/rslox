@@ -1,32 +1,35 @@
 use crate::literal::Literal;
 use crate::token::Token;
 use crate::token_type::TokenType;
-use anyhow::bail;
-use anyhow::Result;
-use once_cell::sync::Lazy;
-use std::collections::HashMap;
+// use anyhow::bail;
+// use anyhow::Result;
+use crate::result::Error;
+use crate::result::Result;
+// use once_cell::sync::Lazy;
+// use std::collections::HashMap;
+use crate::token_type::KEYWORDS;
 use tracing::debug;
 
-static KEYWORDS: Lazy<HashMap<&'static str, TokenType>> = Lazy::new(|| {
-    HashMap::from([
-        ("and", TokenType::And),
-        ("class", TokenType::Class),
-        ("else", TokenType::Else),
-        ("false", TokenType::False),
-        ("fun", TokenType::Fun),
-        ("for", TokenType::For),
-        ("if", TokenType::If),
-        ("nil", TokenType::Nil),
-        ("or", TokenType::Or),
-        ("print", TokenType::Print),
-        ("return", TokenType::Return),
-        ("super", TokenType::Super),
-        ("this", TokenType::This),
-        ("true", TokenType::True),
-        ("var", TokenType::Var),
-        ("while", TokenType::While),
-    ])
-});
+// static KEYWORDS: Lazy<HashMap<&'static str, TokenType>> = Lazy::new(|| {
+//     HashMap::from([
+//         ("and", TokenType::And),
+//         ("class", TokenType::Class),
+//         ("else", TokenType::Else),
+//         ("false", TokenType::False),
+//         ("fun", TokenType::Fun),
+//         ("for", TokenType::For),
+//         ("if", TokenType::If),
+//         ("nil", TokenType::Nil),
+//         ("or", TokenType::Or),
+//         ("print", TokenType::Print),
+//         ("return", TokenType::Return),
+//         ("super", TokenType::Super),
+//         ("this", TokenType::This),
+//         ("true", TokenType::True),
+//         ("var", TokenType::Var),
+//         ("while", TokenType::While),
+//     ])
+// });
 
 #[derive(Debug)]
 pub struct Scanner {
@@ -59,7 +62,7 @@ impl Scanner {
                     debug!("{t}");
                     tokens.push(t);
                 }
-                Err(e) => bail!("{e}"),
+                Err(e) => return Err(e), // bail!("{e}"),
                 _ => (),
             }
         }
@@ -69,7 +72,7 @@ impl Scanner {
     }
 
     fn scan_token(&mut self) -> Result<Option<Token>> {
-        let c = self.advance_one_char()?;
+        let c = self.advance()?;
 
         let token = match c {
             '(' => self.create_token(TokenType::LeftParen)?,
@@ -102,8 +105,8 @@ impl Scanner {
             '/' => match self.is_match('/') {
                 // A comment goes until the end of the line.
                 true => {
-                    while self.peek_one_ahead()? != '\n' && !self.is_at_end() {
-                        self.advance_one_char()?;
+                    while self.peek()? != '\n' && !self.is_at_end() {
+                        self.advance()?;
                     }
                     return Ok(None);
                 }
@@ -126,7 +129,11 @@ impl Scanner {
                     let t = self.get_identifier()?;
                     self.create_token(t)?
                 } else {
-                    bail!(report(self.line, "Unexpected character."))
+                    // bail!(report(self.line, "Unexpected character."))
+                    return Err(Error::Lexical(
+                        self.line,
+                        "Unexpected character.".to_string(),
+                    ));
                 }
             }
         };
@@ -135,8 +142,8 @@ impl Scanner {
     }
 
     fn get_identifier(&mut self) -> Result<TokenType> {
-        while is_alpha_numeric(self.peek_one_ahead()?) {
-            self.advance_one_char()?;
+        while is_alpha_numeric(self.peek()?) {
+            self.advance()?;
         }
 
         let text = self.source[self.start..self.current].to_string();
@@ -147,35 +154,41 @@ impl Scanner {
     }
 
     fn get_number(&mut self) -> Result<f64> {
-        while is_digit(self.peek_one_ahead()?) {
-            self.advance_one_char()?;
+        while is_digit(self.peek()?) {
+            self.advance()?;
         }
 
-        if self.peek_one_ahead()? == '.' && is_digit(self.peek_two_ahead()?) {
-            self.advance_one_char()?;
-            while is_digit(self.peek_one_ahead()?) {
-                self.advance_one_char()?;
+        if self.peek()? == '.' && is_digit(self.peek_next()?) {
+            self.advance()?;
+            while is_digit(self.peek()?) {
+                self.advance()?;
             }
         }
 
-        let value = self.source[self.start..self.current].parse::<f64>()?;
+        let value = self.source[self.start..self.current]
+            .parse::<f64>()
+            .unwrap();
         Ok(value)
     }
 
     fn get_string(&mut self) -> Result<Option<String>> {
-        while self.peek_one_ahead()? != '"' && !self.is_at_end() {
-            if self.peek_one_ahead()? == '\n' {
+        while self.peek()? != '"' && !self.is_at_end() {
+            if self.peek()? == '\n' {
                 self.line += 1;
             }
-            self.advance_one_char()?;
+            self.advance()?;
         }
 
         if self.is_at_end() {
-            bail!(report(self.line, "Unterminated string."));
+            // bail!(report(self.line, "Unterminated string."));
+            return Err(Error::Lexical(
+                self.line,
+                "Unterminated string.".to_string(),
+            ));
         }
 
         // The closing `"`.
-        self.advance_one_char()?;
+        self.advance()?;
 
         // Trim the surrounding quotes.
         let value = self.source[self.start..self.current]
@@ -199,20 +212,20 @@ impl Scanner {
         self.current >= self.source.len()
     }
 
-    fn advance_one_char(&mut self) -> Result<char> {
+    fn advance(&mut self) -> Result<char> {
         let c = self.chars[self.current];
         self.current += 1;
         Ok(c)
     }
 
-    fn peek_one_ahead(&mut self) -> Result<char> {
+    fn peek(&mut self) -> Result<char> {
         if self.is_at_end() {
             return Ok('\0');
         }
         Ok(self.chars[self.current])
     }
 
-    fn peek_two_ahead(&mut self) -> Result<char> {
+    fn peek_next(&mut self) -> Result<char> {
         if self.current + 1 >= self.source.len() {
             return Ok('\0');
         }
@@ -228,10 +241,15 @@ impl Scanner {
         token_type: TokenType,
         literal: Literal,
     ) -> Result<Token> {
-        match self.source.get(self.start..self.current) {
-            Some(t) => Ok(Token::new(token_type, t, literal, self.line)),
-            None => bail!("Failed to get a lexeme from source code"),
-        }
+        let lexeme = self
+            .source
+            .get(self.start..self.current)
+            .expect("Failed to get a lexeme from source.");
+        Ok(Token::new(token_type, lexeme, literal, self.line))
+        // match self.source.get(self.start..self.current) {
+        //     Some(t) => Ok(Token::new(token_type, t, literal, self.line)),
+        //     None => bail!("Failed to get a lexeme from source code"),
+        // }
     }
 }
 
@@ -246,9 +264,9 @@ fn is_alpha_numeric(c: char) -> bool {
     c.is_ascii_alphanumeric() || c == '_'
 }
 
-fn report(line: usize, message: &str) -> String {
-    format!("[line {}] Error: {}", line, message)
-}
+// fn report(line: usize, message: &str) -> String {
+//     format!("[line {}] Error: {}", line, message)
+// }
 
 #[cfg(test)]
 mod tests {

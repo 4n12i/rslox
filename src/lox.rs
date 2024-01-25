@@ -1,8 +1,9 @@
 use crate::interpreter::Interpreter;
 use crate::parser::Parser;
 use crate::scanner::Scanner;
-use anyhow::Context;
-use anyhow::Result;
+// use anyhow::Context;
+// use anyhow::Result;
+use crate::result::Result;
 use std::fs;
 use std::io::BufRead;
 use std::io::Write;
@@ -21,7 +22,7 @@ impl Lox {
 
     pub fn run_file(path: &str) -> Result<()> {
         let mut lox = Self::new();
-        let src = fs::read_to_string(path).context("Failed to read a source file")?;
+        let src = fs::read_to_string(path)?;
         lox.run(&src)
     }
 

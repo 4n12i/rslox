@@ -6,6 +6,7 @@ mod interpreter;
 mod literal;
 pub mod lox;
 mod parser;
+pub mod result;
 mod scanner;
 mod stmt;
 mod token;
