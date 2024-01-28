@@ -299,7 +299,7 @@ impl Parser {
 
         while self.is_match(&[TokenType::BangEqual, TokenType::EqualEqual]) {
             let operator = self.previous().clone();
-            let right = self.factor()?;
+            let right = self.comparison()?;
             expr = Box::new(Expr::Binary(expr, operator, right));
         }
 

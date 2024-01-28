@@ -179,6 +179,6 @@ mod tests {
         assert!(Lox::run_file("examples/err_unexpected_character.lox").is_err());
         assert!(Lox::run_file("examples/ok_empty_file.lox").is_ok());
         assert!(Lox::run_file("examples/ok_fibonacci.lox").is_ok());
-        // assert!(Lox::run_file("examples/ok_precedence.lox").is_ok());
+        assert!(Lox::run_file("examples/ok_precedence.lox").is_ok());
     }
 }
