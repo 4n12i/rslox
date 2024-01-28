@@ -1,7 +1,9 @@
+use tracing::info;
+
 use crate::callable::Callable;
 use crate::environment::Environment;
 use crate::interpreter::Interpreter;
-use crate::result::Result;
+use crate::result::{Error, Result};
 use crate::stmt::Stmt;
 use crate::token::Token;
 use crate::value::Value;
@@ -68,6 +70,7 @@ impl Callable for Function {
         match &self.declaration {
             Declaration::UserDefined(_, params, body) => {
                 let mut environment = Environment::new_local(&interpreter.globals);
+                info!("call param={:?}, arg={:?}", params, arguments);
                 for (param, arg) in params.iter().zip(arguments) {
                     environment.define(&param.lexeme, arg)?;
                 }
@@ -75,7 +78,12 @@ impl Callable for Function {
                 // Execute block statement
                 match **body {
                     Stmt::Block(ref stmts) => {
-                        interpreter.execute_block(stmts, &environment)?;
+                        if let Err(e) = interpreter.execute_block(stmts, &environment) {
+                            match e {
+                                Error::Return(v) => return Ok(v),
+                                _ => return Err(e),
+                            }
+                        }
                         Ok(Value::Nil)
                     }
                     _ => unreachable!(),

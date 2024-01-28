@@ -1,3 +1,5 @@
+use tracing::info;
+
 use crate::result::{Error, Result};
 use crate::token::Token;
 use crate::value::Value;
@@ -33,6 +35,7 @@ impl Environment {
     }
 
     pub fn get(&self, name: &Token) -> Result<Value> {
+        info!("get current env's values={:#?}", self.values);
         match self.values.get(&name.lexeme) {
             Some(value) => Ok(value.clone()),
             None => {

@@ -8,6 +8,7 @@ use crate::stmt::Stmt;
 use crate::token_type::TokenType;
 use crate::value::Value;
 use std::default::Default;
+use tracing::info;
 
 pub struct Interpreter {
     pub globals: Environment,
@@ -157,10 +158,10 @@ impl Interpreter {
             Expr::Logical(left, operator, right) => {
                 let left = self.evaluate(left)?;
                 if operator.token_type == TokenType::Or {
-                    if is_truthy(left.clone()) {
+                    if left.is_truthy() {
                         return Ok(left);
                     }
-                } else if !is_truthy(left.clone()) {
+                } else if !left.is_truthy() {
                     return Ok(left);
                 }
                 self.evaluate(right)
@@ -168,7 +169,7 @@ impl Interpreter {
             Expr::Unary(operator, right) => {
                 let right = self.evaluate(right)?;
                 match operator.token_type {
-                    TokenType::Bang => Ok(Value::Boolean(!is_truthy(right))),
+                    TokenType::Bang => Ok(Value::Boolean(!right.is_truthy())),
                     TokenType::Minus => match right {
                         Value::Number(n) => Ok(Value::Number(-n)),
                         _ => Err(Error::Runtime(
@@ -186,6 +187,10 @@ impl Interpreter {
     pub fn execute(&mut self, stmt: &Stmt) -> Result<()> {
         match stmt {
             Stmt::Block(stmts) => {
+                info!(
+                    "execute current env's values={:#?}",
+                    self.environment.values
+                );
                 self.environment = Environment::new_local(&self.environment);
 
                 for stmt in stmts {
@@ -206,6 +211,10 @@ impl Interpreter {
                     .as_ref()
                     .expect("Failed to get parent environment.");
                 self.environment = *parent.clone();
+                info!(
+                    "execute current env's values={:#?}",
+                    self.environment.values
+                );
             }
             Stmt::Expression(expr) => {
                 self.evaluate(expr)?;
@@ -216,7 +225,7 @@ impl Interpreter {
                     .define(&name.lexeme, &Value::Function(function))?;
             }
             Stmt::If(condition, then_branch, else_branch) => {
-                if is_truthy(self.evaluate(condition)?) {
+                if self.evaluate(condition)?.is_truthy() {
                     self.execute(then_branch)?;
                 } else if let Some(b) = else_branch {
                     self.execute(b)?;
@@ -230,6 +239,7 @@ impl Interpreter {
                     Some(v) => self.evaluate(v)?,
                     None => Value::Nil,
                 };
+                info!("execute_return value={}", value);
                 return Err(Error::Return(value));
             }
             Stmt::Var(token, expr) => {
@@ -240,7 +250,7 @@ impl Interpreter {
                 self.environment.define(&token.lexeme, &value)?;
             }
             Stmt::While(condition, body) => {
-                while is_truthy(self.evaluate(condition)?) {
+                while self.evaluate(condition)?.is_truthy() {
                     self.execute(body)?;
                 }
             }
@@ -249,25 +259,32 @@ impl Interpreter {
     }
 
     pub fn execute_block(&mut self, stmts: &[Stmt], environment: &Environment) -> Result<()> {
-        let previous = Box::new(self.environment.clone());
+        let previous = self.environment.clone();
         self.environment = environment.clone();
+        // self.environment = Environment::new_local(&self.globals);
         for stmt in stmts {
+            info!("execute_block current stmt={}", stmt);
             if let Err(e) = self.execute(stmt) {
-                self.environment = *previous;
+                info!("execute_block failure");
+                // let parent = self
+                // .environment
+                // .enclosing
+                // .as_ref()
+                // .expect("Failed to get parent environment.");
+                // self.environment = *parent.clone();
+                self.environment = previous;
                 return Err(e);
             }
         }
 
-        self.environment = *previous;
+        info!("execute_block success");
+        // let parent = self
+        // .environment
+        // .enclosing
+        // .as_ref()
+        // .expect("Failed to get parent environment.");
+        // self.environment = *parent.clone();
+        self.environment = previous;
         Ok(())
-    }
-}
-
-// Only false and nil are falsey, everything else is truthy
-fn is_truthy(object: Value) -> bool {
-    match object {
-        Value::Boolean(b) => b,
-        Value::Nil => false,
-        _ => true,
     }
 }
