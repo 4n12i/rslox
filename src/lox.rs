@@ -1,3 +1,5 @@
+use tracing::info;
+
 use crate::interpreter::Interpreter;
 use crate::parser::Parser;
 use crate::result::Result;
@@ -36,6 +38,7 @@ impl Lox {
                 println!();
                 break;
             }
+            info!("buffer: {}", buffer);
             if let Err(e) = lox.run(&buffer) {
                 eprintln!("{e}"); // Reset an error
             }

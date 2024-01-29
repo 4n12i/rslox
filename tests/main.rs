@@ -33,7 +33,7 @@ mod tests {
         assert!(Lox::run_file("examples/comments/ok_line_at_eof.lox").is_ok());
         assert!(Lox::run_file("examples/comments/ok_only_line_comment.lox").is_ok());
         assert!(Lox::run_file("examples/comments/ok_only_line_comment_and_line.lox").is_ok());
-        // assert!(Lox::run_file("examples/comments/ok_unicode.lox").is_ok());
+        assert!(Lox::run_file("examples/comments/ok_unicode.lox").is_ok());
     }
 
     #[test]
@@ -133,7 +133,7 @@ mod tests {
     fn check_string() {
         assert!(Lox::run_file("examples/string/err_error_after_multiline.lox").is_err());
         assert!(Lox::run_file("examples/string/err_unterminated.lox").is_err());
-        // assert!(Lox::run_file("examples/string/ok_literals.lox").is_ok());
+        assert!(Lox::run_file("examples/string/ok_literals.lox").is_ok());
         assert!(Lox::run_file("examples/string/ok_multiline.lox").is_ok());
     }
 

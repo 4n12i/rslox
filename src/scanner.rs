@@ -120,8 +120,13 @@ impl Scanner {
             self.advance()?;
         }
 
-        let text = self.source[self.start..self.current].to_string();
-        match KEYWORDS.get(&text as &str) {
+        let s: String = self
+            .chars
+            .get((self.start)..(self.current))
+            .expect("Failed to get a string from source.")
+            .iter()
+            .collect();
+        match KEYWORDS.get(&s as &str) {
             Some(t) => Ok(t.clone()),
             None => Ok(TokenType::Identifier),
         }
@@ -164,9 +169,12 @@ impl Scanner {
         self.advance()?;
 
         // Trim the surrounding quotes.
-        let value = self.source[self.start..self.current]
-            .trim_matches('"')
-            .to_string();
+        let value = self
+            .chars
+            .get((self.start + 1)..(self.current - 1))
+            .expect("Failed to get a string from source.")
+            .iter()
+            .collect();
         Ok(Some(value))
     }
 
@@ -182,7 +190,7 @@ impl Scanner {
     }
 
     fn is_at_end(&mut self) -> bool {
-        self.current >= self.source.len()
+        self.current >= self.chars.len()
     }
 
     fn advance(&mut self) -> Result<char> {
@@ -199,7 +207,7 @@ impl Scanner {
     }
 
     fn peek_next(&mut self) -> Result<char> {
-        if self.current + 1 >= self.source.len() {
+        if self.current + 1 >= self.chars.len() {
             return Ok('\0');
         }
         Ok(self.chars[self.current + 1])
@@ -214,11 +222,16 @@ impl Scanner {
         token_type: TokenType,
         literal: Literal,
     ) -> Result<Token> {
-        let lexeme = self
-            .source
-            .get(self.start..self.current)
-            .expect("Failed to get a lexeme from source.");
-        Ok(Token::new(token_type, lexeme, literal, self.line))
+        let lexeme: String = self
+            .chars
+            .get((self.start)..(self.current))
+            .ok_or(Error::Lexical(
+                self.line,
+                "Failed to get a lexeme.".to_string(),
+            ))?
+            .iter()
+            .collect();
+        Ok(Token::new(token_type, &lexeme, literal, self.line))
     }
 }
 
