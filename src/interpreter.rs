@@ -195,26 +195,34 @@ impl Interpreter {
 
                 for stmt in stmts {
                     if let Err(e) = self.execute(stmt) {
-                        let parent = self
+                        self.environment = *self
                             .environment
                             .enclosing
-                            .as_ref()
-                            .expect("Failed to get parent environment.");
-                        self.environment = *parent.clone();
+                            .clone()
+                            .expect("Failed to get an environment.");
+
+                        // let parent = self
+                        //     .environment
+                        //     .enclosing
+                        //     .as_ref()
+                        //     .expect("Failed to get parent environment.");
+                        // self.environment = *parent.clone();
                         return Err(e);
                     }
                 }
 
-                let parent = self
+                self.environment = *self
                     .environment
                     .enclosing
-                    .as_ref()
-                    .expect("Failed to get parent environment.");
-                self.environment = *parent.clone();
-                info!(
-                    "execute current env's values={:#?}",
-                    self.environment.values
-                );
+                    .clone()
+                    .expect("Failed to get an environment.");
+
+                // let parent = self
+                //     .environment
+                //     .enclosing
+                //     .as_ref()
+                //     .expect("Failed to get parent environment.");
+                // self.environment = *parent.clone();
             }
             Stmt::Expression(expr) => {
                 self.evaluate(expr)?;
