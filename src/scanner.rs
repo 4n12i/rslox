@@ -238,6 +238,7 @@ impl Scanner {
 fn is_digit(c: char) -> bool {
     c.is_ascii_digit()
 }
+
 fn is_alpha(c: char) -> bool {
     c.is_ascii_alphabetic() || c == '_'
 }

@@ -32,3 +32,14 @@ impl fmt::Display for Value {
         }
     }
 }
+
+impl Value {
+    // Only false and nil are falsey, everything else is truthy
+    pub fn is_truthy(&self) -> bool {
+        match self {
+            Self::Boolean(b) => *b,
+            Self::Nil => false,
+            _ => true,
+        }
+    }
+}

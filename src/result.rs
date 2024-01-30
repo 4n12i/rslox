@@ -7,7 +7,6 @@ use std::result;
 
 pub type Result<T> = result::Result<T, Error>;
 
-#[allow(dead_code)]
 #[derive(Debug)]
 pub enum Error {
     Usage,

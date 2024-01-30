@@ -11,7 +11,7 @@ use std::default::Default;
 
 pub struct Interpreter {
     pub globals: Environment,
-    environment: Environment,
+    pub environment: Environment,
 }
 
 impl Default for Interpreter {
@@ -40,7 +40,8 @@ impl Interpreter {
 
         Self {
             globals: globals.clone(),
-            environment: globals.clone(),
+            // environment: globals.clone(),
+            environment: Environment::new_local(&globals),
         }
     }
 
@@ -157,10 +158,10 @@ impl Interpreter {
             Expr::Logical(left, operator, right) => {
                 let left = self.evaluate(left)?;
                 if operator.token_type == TokenType::Or {
-                    if is_truthy(left.clone()) {
+                    if left.is_truthy() {
                         return Ok(left);
                     }
-                } else if !is_truthy(left.clone()) {
+                } else if !left.is_truthy() {
                     return Ok(left);
                 }
                 self.evaluate(right)
@@ -168,7 +169,7 @@ impl Interpreter {
             Expr::Unary(operator, right) => {
                 let right = self.evaluate(right)?;
                 match operator.token_type {
-                    TokenType::Bang => Ok(Value::Boolean(!is_truthy(right))),
+                    TokenType::Bang => Ok(Value::Boolean(!right.is_truthy())),
                     TokenType::Minus => match right {
                         Value::Number(n) => Ok(Value::Number(-n)),
                         _ => Err(Error::Runtime(
@@ -190,22 +191,20 @@ impl Interpreter {
 
                 for stmt in stmts {
                     if let Err(e) = self.execute(stmt) {
-                        let parent = self
+                        self.environment = *self
                             .environment
                             .enclosing
-                            .as_ref()
-                            .expect("Failed to get parent environment.");
-                        self.environment = *parent.clone();
+                            .clone()
+                            .expect("Failed to get an environment.");
                         return Err(e);
                     }
                 }
 
-                let parent = self
+                self.environment = *self
                     .environment
                     .enclosing
-                    .as_ref()
-                    .expect("Failed to get parent environment.");
-                self.environment = *parent.clone();
+                    .clone()
+                    .expect("Failed to get an environment.");
             }
             Stmt::Expression(expr) => {
                 self.evaluate(expr)?;
@@ -216,7 +215,7 @@ impl Interpreter {
                     .define(&name.lexeme, &Value::Function(function))?;
             }
             Stmt::If(condition, then_branch, else_branch) => {
-                if is_truthy(self.evaluate(condition)?) {
+                if self.evaluate(condition)?.is_truthy() {
                     self.execute(then_branch)?;
                 } else if let Some(b) = else_branch {
                     self.execute(b)?;
@@ -240,34 +239,11 @@ impl Interpreter {
                 self.environment.define(&token.lexeme, &value)?;
             }
             Stmt::While(condition, body) => {
-                while is_truthy(self.evaluate(condition)?) {
+                while self.evaluate(condition)?.is_truthy() {
                     self.execute(body)?;
                 }
             }
         }
         Ok(())
-    }
-
-    pub fn execute_block(&mut self, stmts: &[Stmt], environment: &Environment) -> Result<()> {
-        let previous = Box::new(self.environment.clone());
-        self.environment = environment.clone();
-        for stmt in stmts {
-            if let Err(e) = self.execute(stmt) {
-                self.environment = *previous;
-                return Err(e);
-            }
-        }
-
-        self.environment = *previous;
-        Ok(())
-    }
-}
-
-// Only false and nil are falsey, everything else is truthy
-fn is_truthy(object: Value) -> bool {
-    match object {
-        Value::Boolean(b) => b,
-        Value::Nil => false,
-        _ => true,
     }
 }
