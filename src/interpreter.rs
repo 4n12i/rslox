@@ -12,7 +12,7 @@ use tracing::info;
 
 pub struct Interpreter {
     pub globals: Environment,
-    environment: Environment,
+    pub environment: Environment,
 }
 
 impl Default for Interpreter {
@@ -41,7 +41,8 @@ impl Interpreter {
 
         Self {
             globals: globals.clone(),
-            environment: globals.clone(),
+            // environment: globals.clone(),
+            environment: Environment::new_local(&globals),
         }
     }
 
@@ -200,13 +201,6 @@ impl Interpreter {
                             .enclosing
                             .clone()
                             .expect("Failed to get an environment.");
-
-                        // let parent = self
-                        //     .environment
-                        //     .enclosing
-                        //     .as_ref()
-                        //     .expect("Failed to get parent environment.");
-                        // self.environment = *parent.clone();
                         return Err(e);
                     }
                 }
@@ -216,13 +210,6 @@ impl Interpreter {
                     .enclosing
                     .clone()
                     .expect("Failed to get an environment.");
-
-                // let parent = self
-                //     .environment
-                //     .enclosing
-                //     .as_ref()
-                //     .expect("Failed to get parent environment.");
-                // self.environment = *parent.clone();
             }
             Stmt::Expression(expr) => {
                 self.evaluate(expr)?;
@@ -247,7 +234,6 @@ impl Interpreter {
                     Some(v) => self.evaluate(v)?,
                     None => Value::Nil,
                 };
-                info!("execute_return value={}", value);
                 return Err(Error::Return(value));
             }
             Stmt::Var(token, expr) => {
@@ -263,36 +249,6 @@ impl Interpreter {
                 }
             }
         }
-        Ok(())
-    }
-
-    pub fn execute_block(&mut self, stmts: &[Stmt], environment: &Environment) -> Result<()> {
-        let previous = self.environment.clone();
-        self.environment = environment.clone();
-        // self.environment = Environment::new_local(&self.globals);
-        for stmt in stmts {
-            info!("execute_block current stmt={}", stmt);
-            if let Err(e) = self.execute(stmt) {
-                info!("execute_block failure");
-                // let parent = self
-                // .environment
-                // .enclosing
-                // .as_ref()
-                // .expect("Failed to get parent environment.");
-                // self.environment = *parent.clone();
-                self.environment = previous;
-                return Err(e);
-            }
-        }
-
-        info!("execute_block success");
-        // let parent = self
-        // .environment
-        // .enclosing
-        // .as_ref()
-        // .expect("Failed to get parent environment.");
-        // self.environment = *parent.clone();
-        self.environment = previous;
         Ok(())
     }
 }

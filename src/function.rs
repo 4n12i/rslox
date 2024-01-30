@@ -1,5 +1,3 @@
-use tracing::info;
-
 use crate::callable::Callable;
 use crate::environment::Environment;
 use crate::interpreter::Interpreter;
@@ -8,6 +6,7 @@ use crate::stmt::Stmt;
 use crate::token::Token;
 use crate::value::Value;
 use std::fmt;
+use tracing::info;
 
 #[derive(Clone, Debug, PartialEq, PartialOrd)]
 pub struct Function {
@@ -69,8 +68,10 @@ impl Callable for Function {
     fn call(&self, interpreter: &mut Interpreter, arguments: &[Value]) -> Result<Value> {
         match &self.declaration {
             Declaration::UserDefined(_, params, body) => {
-                let mut environment = Environment::new_local(&interpreter.globals);
-                info!("call param={:?}, arg={:?}", params, arguments);
+                let mut environment = Environment::new_local(&interpreter.environment);
+                // let mut environment = Environment::new_local(&interpreter.globals);
+                let previous = interpreter.environment.clone();
+
                 for (param, arg) in params.iter().zip(arguments) {
                     environment.define(&param.lexeme, arg)?;
                 }
@@ -78,12 +79,18 @@ impl Callable for Function {
                 // Execute block statement
                 match **body {
                     Stmt::Block(ref stmts) => {
-                        if let Err(e) = interpreter.execute_block(stmts, &environment) {
-                            match e {
-                                Error::Return(v) => return Ok(v),
-                                _ => return Err(e),
+                        interpreter.environment = environment;
+                        for stmt in stmts {
+                            info!("execute stmt={}", stmt);
+                            if let Err(e) = interpreter.execute(stmt) {
+                                interpreter.environment = previous;
+                                match e {
+                                    Error::Return(v) => return Ok(v),
+                                    _ => return Err(e),
+                                }
                             }
                         }
+                        interpreter.environment = previous;
                         Ok(Value::Nil)
                     }
                     _ => unreachable!(),

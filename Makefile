@@ -1,6 +1,6 @@
 commit: 
 	make check
-	make test
+	cargo test
 	git add .
 	git commit
 	
