@@ -8,7 +8,6 @@ use crate::stmt::Stmt;
 use crate::token_type::TokenType;
 use crate::value::Value;
 use std::default::Default;
-use tracing::info;
 
 pub struct Interpreter {
     pub globals: Environment,
@@ -188,10 +187,6 @@ impl Interpreter {
     pub fn execute(&mut self, stmt: &Stmt) -> Result<()> {
         match stmt {
             Stmt::Block(stmts) => {
-                info!(
-                    "execute current env's values={:#?}",
-                    self.environment.values
-                );
                 self.environment = Environment::new_local(&self.environment);
 
                 for stmt in stmts {

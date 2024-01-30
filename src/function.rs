@@ -1,12 +1,12 @@
 use crate::callable::Callable;
 use crate::environment::Environment;
 use crate::interpreter::Interpreter;
-use crate::result::{Error, Result};
+use crate::result::Error;
+use crate::result::Result;
 use crate::stmt::Stmt;
 use crate::token::Token;
 use crate::value::Value;
 use std::fmt;
-use tracing::info;
 
 #[derive(Clone, Debug, PartialEq, PartialOrd)]
 pub struct Function {
@@ -81,7 +81,6 @@ impl Callable for Function {
                     Stmt::Block(ref stmts) => {
                         interpreter.environment = environment;
                         for stmt in stmts {
-                            info!("execute stmt={}", stmt);
                             if let Err(e) = interpreter.execute(stmt) {
                                 interpreter.environment = previous;
                                 match e {
