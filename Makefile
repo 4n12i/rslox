@@ -6,12 +6,10 @@ commit:
 	
 run: 
 	make check
-	cargo test
 	RUST_LOG=debug cargo run
 	
 build: 
 	make check
-	make test
 	cargo build
 	
 test: 
