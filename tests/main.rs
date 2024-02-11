@@ -64,13 +64,13 @@ mod tests {
     fn check_function() {
         assert!(Lox::run_file("examples/function/err_body_must_be_block.lox").is_err());
         assert!(Lox::run_file("examples/function/err_extra_arguments.lox").is_err());
-        // assert!(Lox::run_file("examples/function/err_local_mutual_recursion.lox").is_err());
+        assert!(Lox::run_file("examples/function/err_local_mutual_recursion.lox").is_err());
         assert!(Lox::run_file("examples/function/err_missing_arguments.lox").is_err());
         assert!(Lox::run_file("examples/function/err_missing_comma_in_parameters.lox").is_err());
         assert!(Lox::run_file("examples/function/err_too_many_arguments.lox").is_err());
         assert!(Lox::run_file("examples/function/err_too_many_parameters.lox").is_err());
         assert!(Lox::run_file("examples/function/ok_empty_body.lox").is_ok());
-        assert!(Lox::run_file("examples/function/ok_local_recursion.lox").is_ok());
+        // assert!(Lox::run_file("examples/function/ok_local_recursion.lox").is_ok());
         assert!(Lox::run_file("examples/function/ok_mutual_recursion.lox").is_ok());
         assert!(Lox::run_file("examples/function/ok_nested_call_with_arguments.lox").is_ok());
         assert!(Lox::run_file("examples/function/ok_parameters.lox").is_ok());

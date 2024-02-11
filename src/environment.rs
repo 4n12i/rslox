@@ -1,64 +1,61 @@
-use crate::result::{Error, Result};
+use crate::result::Error;
+use crate::result::Result;
 use crate::token::Token;
 use crate::value::Value;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 
-#[allow(dead_code)]
-pub struct NewNode {
-    enclosing: Option<Rc<RefCell<NewNode>>>, // Pointer to parent environment
-    values: HashMap<String, Value>,
-}
-
-#[allow(dead_code)]
 pub struct NewEnvironment {
-    node: Rc<RefCell<NewNode>>,
+    enclosing: Option<Rc<RefCell<NewEnvironment>>>,
+    values: RefCell<HashMap<String, Value>>,
 }
 
-#[allow(dead_code)]
-impl NewNode {
-    fn new() -> Self {
+impl Default for NewEnvironment {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl NewEnvironment {
+    pub fn new() -> Self {
         Self {
             enclosing: None,
-            values: HashMap::new(),
+            values: RefCell::new(HashMap::new()),
         }
     }
 
-    fn with_enclosing(enclosing: Rc<RefCell<NewNode>>) -> Self {
+    pub fn with_enclosing(enclosing: Rc<RefCell<NewEnvironment>>) -> Self {
         Self {
             enclosing: Some(enclosing),
-            values: HashMap::new(),
+            values: RefCell::new(HashMap::new()),
         }
     }
 
-    // Definition of variables. You can also redefine existing variables.
-    fn define(&mut self, name: &str, value: Value) -> bool {
-        self.values.insert(name.to_string(), value).is_some()
+    pub fn define(&self, name: &str, value: Value) -> Result<()> {
+        self.values.borrow_mut().insert(name.to_string(), value);
+        Ok(())
     }
 
-    fn get(&self, name: &Token) -> Result<Value> {
-        match self.values.get(&name.lexeme) {
-            Some(value) => Ok(value.clone()),
-            None => {
-                if let Some(ref e) = self.enclosing {
-                    return e.borrow_mut().get(name);
-                }
-                Err(Error::Runtime(
-                    name.clone(),
-                    format!("Undefined variable '{}'", name.lexeme),
-                ))
-            }
+    pub fn get(&self, name: &Token) -> Result<Value> {
+        if let Some(value) = self.values.borrow().get(&name.lexeme) {
+            return Ok(value.clone());
         }
+        if let Some(enclosing) = &self.enclosing {
+            return enclosing.borrow().get(name);
+        }
+        Err(Error::Runtime(
+            name.clone(),
+            format!("Undefined variable '{}'", name.lexeme),
+        ))
     }
 
-    fn assign(&mut self, name: &Token, value: Value) -> Result<()> {
-        if self.values.contains_key(&name.lexeme) {
-            self.values.insert(name.lexeme.clone(), value.clone());
-            return Ok(());
+    pub fn assign(&self, name: &Token, value: Value) -> Result<()> {
+        if self.values.borrow().contains_key(&name.lexeme) {
+            return self.define(&name.lexeme, value);
         }
-        if let Some(ref mut e) = self.enclosing {
-            return e.borrow_mut().assign(name, value);
+        if let Some(enclosing) = &self.enclosing {
+            return enclosing.borrow_mut().assign(name, value);
         }
         Err(Error::Runtime(
             name.clone(),

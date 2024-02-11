@@ -1,5 +1,6 @@
 use crate::callable::Callable;
 use crate::environment::Environment;
+use crate::environment::NewEnvironment;
 use crate::expr::Expr;
 use crate::function::Function;
 use crate::result::Error;
@@ -7,11 +8,16 @@ use crate::result::Result;
 use crate::stmt::Stmt;
 use crate::token_type::TokenType;
 use crate::value::Value;
+use std::cell::RefCell;
 use std::default::Default;
+use std::rc::Rc;
 
+#[allow(dead_code)]
 pub struct Interpreter {
-    pub globals: Environment,
-    pub environment: Environment,
+    pub prev_globals: Environment,
+    pub prev_environment: Environment,
+    pub globals: Rc<RefCell<NewEnvironment>>,
+    pub environment: Rc<RefCell<NewEnvironment>>,
 }
 
 impl Default for Interpreter {
@@ -20,6 +26,7 @@ impl Default for Interpreter {
     }
 }
 
+#[allow(dead_code)]
 impl Interpreter {
     pub fn new() -> Self {
         let mut globals = Environment::new_global();
@@ -35,13 +42,20 @@ impl Interpreter {
         }
         let function = Function::new_primitive(clock, 0);
         globals
-            .define("clock", &Value::Function(function))
+            .define("clock", &Value::Function(function.clone()))
             .expect("Failed to define a primitive function.");
 
+        let env = NewEnvironment::new();
+        let g = Rc::new(RefCell::new(env));
+        g.borrow_mut()
+            .define("clock", Value::Function(function))
+            .unwrap();
+
         Self {
-            globals: globals.clone(),
-            // environment: globals.clone(),
-            environment: Environment::new_local(&globals),
+            prev_globals: globals.clone(),
+            prev_environment: Environment::new_local(&globals),
+            globals: Rc::clone(&g),
+            environment: g,
         }
     }
 
@@ -56,7 +70,7 @@ impl Interpreter {
         match expr {
             Expr::Assign(name, value) => {
                 let value = self.evaluate(value)?;
-                self.environment.assign(name, &value)?;
+                self.environment.borrow_mut().assign(name, value.clone())?;
                 Ok(value)
             }
             Expr::Binary(left, operator, right) => {
@@ -180,31 +194,26 @@ impl Interpreter {
                     _ => unreachable!(),
                 }
             }
-            Expr::Variable(token) => self.environment.get(token),
+            Expr::Variable(token) => self.environment.borrow().get(token),
         }
     }
 
     pub fn execute(&mut self, stmt: &Stmt) -> Result<()> {
         match stmt {
             Stmt::Block(stmts) => {
-                self.environment = Environment::new_local(&self.environment);
+                let previous = Rc::clone(&self.environment);
+                self.environment = Rc::new(RefCell::new(NewEnvironment::with_enclosing(
+                    Rc::clone(&self.environment),
+                )));
 
                 for stmt in stmts {
                     if let Err(e) = self.execute(stmt) {
-                        self.environment = *self
-                            .environment
-                            .enclosing
-                            .clone()
-                            .expect("Failed to get an environment.");
+                        self.environment = previous;
                         return Err(e);
                     }
                 }
 
-                self.environment = *self
-                    .environment
-                    .enclosing
-                    .clone()
-                    .expect("Failed to get an environment.");
+                self.environment = previous;
             }
             Stmt::Expression(expr) => {
                 self.evaluate(expr)?;
@@ -212,7 +221,8 @@ impl Interpreter {
             Stmt::Function(name, _params, _body) => {
                 let function = Function::new(stmt);
                 self.environment
-                    .define(&name.lexeme, &Value::Function(function))?;
+                    .borrow_mut()
+                    .define(&name.lexeme, Value::Function(function))?;
             }
             Stmt::If(condition, then_branch, else_branch) => {
                 if self.evaluate(condition)?.is_truthy() {
@@ -236,7 +246,7 @@ impl Interpreter {
                     Some(initializer) => self.evaluate(initializer)?,
                     None => Value::Nil,
                 };
-                self.environment.define(&token.lexeme, &value)?;
+                self.environment.borrow_mut().define(&token.lexeme, value)?;
             }
             Stmt::While(condition, body) => {
                 while self.evaluate(condition)?.is_truthy() {

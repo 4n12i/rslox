@@ -1,12 +1,14 @@
 use crate::callable::Callable;
-use crate::environment::Environment;
+use crate::environment::NewEnvironment;
 use crate::interpreter::Interpreter;
 use crate::result::Error;
 use crate::result::Result;
 use crate::stmt::Stmt;
 use crate::token::Token;
 use crate::value::Value;
+use std::cell::RefCell;
 use std::fmt;
+use std::rc::Rc;
 
 #[derive(Clone, Debug, PartialEq, PartialOrd)]
 pub struct Function {
@@ -68,18 +70,17 @@ impl Callable for Function {
     fn call(&self, interpreter: &mut Interpreter, arguments: &[Value]) -> Result<Value> {
         match &self.declaration {
             Declaration::UserDefined(_, params, body) => {
-                let mut environment = Environment::new_local(&interpreter.environment);
-                // let mut environment = Environment::new_local(&interpreter.globals);
-                let previous = interpreter.environment.clone();
+                let environment = NewEnvironment::with_enclosing(Rc::clone(&interpreter.globals));
+                let previous = Rc::clone(&interpreter.environment);
 
                 for (param, arg) in params.iter().zip(arguments) {
-                    environment.define(&param.lexeme, arg)?;
+                    environment.define(&param.lexeme, arg.clone())?;
                 }
 
                 // Execute block statement
                 match **body {
                     Stmt::Block(ref stmts) => {
-                        interpreter.environment = environment;
+                        interpreter.environment = Rc::new(RefCell::new(environment));
                         for stmt in stmts {
                             if let Err(e) = interpreter.execute(stmt) {
                                 interpreter.environment = previous;
