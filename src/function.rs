@@ -1,5 +1,5 @@
 use crate::callable::Callable;
-use crate::environment::NewEnvironment;
+use crate::environment::Environment;
 use crate::interpreter::Interpreter;
 use crate::result::Error;
 use crate::result::Result;
@@ -70,7 +70,7 @@ impl Callable for Function {
     fn call(&self, interpreter: &mut Interpreter, arguments: &[Value]) -> Result<Value> {
         match &self.declaration {
             Declaration::UserDefined(_, params, body) => {
-                let environment = NewEnvironment::with_enclosing(Rc::clone(&interpreter.globals));
+                let environment = Environment::with_enclosing(Rc::clone(&interpreter.globals));
                 let previous = Rc::clone(&interpreter.environment);
 
                 for (param, arg) in params.iter().zip(arguments) {

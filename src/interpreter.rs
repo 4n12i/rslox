@@ -1,6 +1,5 @@
 use crate::callable::Callable;
 use crate::environment::Environment;
-use crate::environment::NewEnvironment;
 use crate::expr::Expr;
 use crate::function::Function;
 use crate::result::Error;
@@ -12,12 +11,9 @@ use std::cell::RefCell;
 use std::default::Default;
 use std::rc::Rc;
 
-#[allow(dead_code)]
 pub struct Interpreter {
-    pub prev_globals: Environment,
-    pub prev_environment: Environment,
-    pub globals: Rc<RefCell<NewEnvironment>>,
-    pub environment: Rc<RefCell<NewEnvironment>>,
+    pub globals: Rc<RefCell<Environment>>,
+    pub environment: Rc<RefCell<Environment>>,
 }
 
 impl Default for Interpreter {
@@ -26,10 +22,10 @@ impl Default for Interpreter {
     }
 }
 
-#[allow(dead_code)]
 impl Interpreter {
     pub fn new() -> Self {
-        let mut globals = Environment::new_global();
+        let environment = Environment::new();
+        let globals = Rc::new(RefCell::new(environment));
 
         // Define a primitive function
         fn clock(_interpreter: &mut Interpreter, _arguments: &[Value]) -> Result<Value> {
@@ -42,20 +38,13 @@ impl Interpreter {
         }
         let function = Function::new_primitive(clock, 0);
         globals
-            .define("clock", &Value::Function(function.clone()))
+            .borrow_mut()
+            .define("clock", Value::Function(function))
             .expect("Failed to define a primitive function.");
 
-        let env = NewEnvironment::new();
-        let g = Rc::new(RefCell::new(env));
-        g.borrow_mut()
-            .define("clock", Value::Function(function))
-            .unwrap();
-
         Self {
-            prev_globals: globals.clone(),
-            prev_environment: Environment::new_local(&globals),
-            globals: Rc::clone(&g),
-            environment: g,
+            globals: Rc::clone(&globals),
+            environment: globals,
         }
     }
 
@@ -202,9 +191,9 @@ impl Interpreter {
         match stmt {
             Stmt::Block(stmts) => {
                 let previous = Rc::clone(&self.environment);
-                self.environment = Rc::new(RefCell::new(NewEnvironment::with_enclosing(
-                    Rc::clone(&self.environment),
-                )));
+                self.environment = Rc::new(RefCell::new(Environment::with_enclosing(Rc::clone(
+                    &self.environment,
+                ))));
 
                 for stmt in stmts {
                     if let Err(e) = self.execute(stmt) {
