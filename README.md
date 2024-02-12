@@ -22,7 +22,7 @@ $ RUST_LOG=debug cargo run
 - [x] Evaluating Expressions
 - [x] Statements and State
 - [x] Control Flow
-- [ ] Functions
+- [x] Functions
 - [ ] Resolving and Binding
 - [ ] Classes
 - [ ] Inheritance

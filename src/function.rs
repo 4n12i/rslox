@@ -78,13 +78,13 @@ impl fmt::Display for LoxFunction {
 
 impl cmp::PartialEq for LoxFunction {
     fn eq(&self, _: &Self) -> bool {
-        todo!()
+        false
     }
 }
 
 impl PartialOrd for LoxFunction {
-    fn partial_cmp(&self, _: &Self) -> Option<cmp::Ordering> {
-        todo!()
+    fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
+        self.name.partial_cmp(&other.name)
     }
 }
 
