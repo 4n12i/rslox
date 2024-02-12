@@ -7,96 +7,112 @@ use crate::stmt::Stmt;
 use crate::token::Token;
 use crate::value::Value;
 use std::cell::RefCell;
+use std::cmp;
 use std::fmt;
 use std::rc::Rc;
 
-#[derive(Clone, Debug, PartialEq, PartialOrd)]
-pub struct Function {
-    declaration: Declaration,
-    // initializer: bool,
-    // closure: Environment,
+// User-defined function
+#[derive(Clone, Debug)]
+pub struct LoxFunction {
+    name: String,
+    params: Vec<Token>,
+    body: Vec<Stmt>,
+    closure: Rc<RefCell<Environment>>,
 }
 
-#[derive(Clone, Debug, PartialEq, PartialOrd)]
-enum Declaration {
-    UserDefined(Token, Vec<Token>, Box<Stmt>), // User-defined function
-    Primitive(fn(&mut Interpreter, &[Value]) -> Result<Value>, usize),
-}
-
-// Convert Stmt::Function to Declaration::UserDefined
-impl From<Stmt> for Declaration {
-    fn from(value: Stmt) -> Self {
-        match value {
-            Stmt::Function(name, params, body) => Declaration::UserDefined(name, params, body),
-            _ => unreachable!(),
-        }
-    }
-}
-
-impl Function {
-    pub fn new(stmt: &Stmt) -> Self {
-        Self {
-            declaration: stmt.clone().into(),
-        }
-    }
-
-    pub fn new_primitive(
-        function: fn(&mut Interpreter, &[Value]) -> Result<Value>,
-        arity: usize,
+impl LoxFunction {
+    pub fn new(
+        name: &Token,
+        params: &[Token],
+        body: &Stmt,
+        closure: Rc<RefCell<Environment>>,
     ) -> Self {
+        let block = match body {
+            Stmt::Block(ref stmts) => stmts,
+            _ => unreachable!(),
+        };
         Self {
-            declaration: Declaration::Primitive(function, arity),
+            name: name.lexeme.clone(),
+            params: params.to_vec(),
+            body: block.to_vec(),
+            closure,
         }
     }
 }
 
-impl fmt::Display for Function {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match &self.declaration {
-            Declaration::UserDefined(name, _, _) => write!(f, "<fn {}>", name.lexeme),
-            Declaration::Primitive(_, _) => write!(f, "<native fn>"),
-        }
-    }
-}
-
-impl Callable for Function {
+impl Callable for LoxFunction {
     fn arity(&self) -> usize {
-        match &self.declaration {
-            Declaration::UserDefined(_, params, _) => params.len(),
-            Declaration::Primitive(_, arity) => *arity,
-        }
+        self.params.len()
     }
 
     fn call(&self, interpreter: &mut Interpreter, arguments: &[Value]) -> Result<Value> {
-        match &self.declaration {
-            Declaration::UserDefined(_, params, body) => {
-                let environment = Environment::with_enclosing(Rc::clone(&interpreter.globals));
-                let previous = Rc::clone(&interpreter.environment);
+        let environment = Environment::with_enclosing(Rc::clone(&self.closure));
 
-                for (param, arg) in params.iter().zip(arguments) {
-                    environment.define(&param.lexeme, arg.clone())?;
-                }
+        let previous = Rc::clone(&interpreter.environment);
 
-                // Execute block statement
-                match **body {
-                    Stmt::Block(ref stmts) => {
-                        interpreter.environment = Rc::new(RefCell::new(environment));
-                        for stmt in stmts {
-                            if let Err(e) = interpreter.execute(stmt) {
-                                interpreter.environment = previous;
-                                match e {
-                                    Error::Return(v) => return Ok(v),
-                                    _ => return Err(e),
-                                }
-                            }
-                        }
-                        interpreter.environment = previous;
-                        Ok(Value::Nil)
-                    }
-                    _ => unreachable!(),
+        for (param, arg) in self.params.iter().zip(arguments) {
+            environment.define(&param.lexeme, arg.clone())?;
+        }
+
+        // Execute block statement
+        interpreter.environment = Rc::new(RefCell::new(environment));
+        for stmt in &self.body {
+            if let Err(error) = interpreter.execute(stmt) {
+                interpreter.environment = previous;
+                match error {
+                    Error::Return(value) => return Ok(value),
+                    _ => return Err(error),
                 }
             }
-            Declaration::Primitive(function, _) => function(interpreter, arguments),
         }
+        interpreter.environment = previous;
+        Ok(Value::Nil)
+    }
+}
+
+impl fmt::Display for LoxFunction {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "<fn {}>", self.name)
+    }
+}
+
+impl cmp::PartialEq for LoxFunction {
+    fn eq(&self, _: &Self) -> bool {
+        todo!()
+    }
+}
+
+impl PartialOrd for LoxFunction {
+    fn partial_cmp(&self, _: &Self) -> Option<cmp::Ordering> {
+        todo!()
+    }
+}
+
+// Primitive function
+#[derive(Clone, Debug, PartialEq, PartialOrd)]
+pub struct NativeFunction {
+    arity: usize,
+    function: fn(&mut Interpreter, &[Value]) -> Result<Value>,
+}
+
+impl NativeFunction {
+    pub fn new(arity: usize, function: fn(&mut Interpreter, &[Value]) -> Result<Value>) -> Self {
+        Self { arity, function }
+    }
+}
+
+impl Callable for NativeFunction {
+    fn arity(&self) -> usize {
+        self.arity
+    }
+
+    fn call(&self, interpreter: &mut Interpreter, arguments: &[Value]) -> Result<Value> {
+        (self.function)(interpreter, arguments)
+    }
+}
+
+impl fmt::Display for NativeFunction {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "<native fn>")
     }
 }

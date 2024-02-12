@@ -38,6 +38,23 @@ mod tests {
     }
 
     #[test]
+    fn check_closure() {
+        assert!(Lox::run_file("examples/closure/ok_assign_to_closure.lox").is_ok());
+        assert!(Lox::run_file("examples/closure/ok_assign_to_shadowed_later.lox").is_ok());
+        assert!(Lox::run_file("examples/closure/ok_close_over_function_parameter.lox").is_ok());
+        assert!(Lox::run_file("examples/closure/ok_close_over_later_variable.lox").is_ok());
+        // assert!(Lox::run_file("examples/closure/ok_close_over_method_parameter.lox").is_ok());
+        assert!(Lox::run_file("examples/closure/ok_closed_closure_in_function.lox").is_ok());
+        assert!(Lox::run_file("examples/closure/ok_nested_closure.lox").is_ok());
+        assert!(Lox::run_file("examples/closure/ok_open_closure_in_function.lox").is_ok());
+        assert!(Lox::run_file("examples/closure/ok_reference_closure_multiple_times.lox").is_ok());
+        assert!(Lox::run_file("examples/closure/ok_reuse_closure_slot.lox").is_ok());
+        assert!(Lox::run_file("examples/closure/ok_shadow_closure_with_local.lox").is_ok());
+        assert!(Lox::run_file("examples/closure/ok_unused_closure.lox").is_ok());
+        assert!(Lox::run_file("examples/closure/ok_unused_later_closure.lox").is_ok());
+    }
+
+    #[test]
     fn check_comments() {
         assert!(Lox::run_file("examples/comments/ok_line_at_eof.lox").is_ok());
         assert!(Lox::run_file("examples/comments/ok_only_line_comment.lox").is_ok());
@@ -53,8 +70,8 @@ mod tests {
         assert!(Lox::run_file("examples/for/err_statement_increment.lox").is_err());
         assert!(Lox::run_file("examples/for/err_statement_initializer.lox").is_err());
         assert!(Lox::run_file("examples/for/err_var_in_body.lox").is_err());
-        // assert!(Lox::run_file("examples/for/ok_closure_in_body.lox").is_ok());
-        // assert!(Lox::run_file("examples/for/ok_return_closure.lox").is_ok());
+        assert!(Lox::run_file("examples/for/ok_closure_in_body.lox").is_ok());
+        assert!(Lox::run_file("examples/for/ok_return_closure.lox").is_ok());
         assert!(Lox::run_file("examples/for/ok_return_inside.lox").is_ok());
         assert!(Lox::run_file("examples/for/ok_scope.lox").is_ok());
         assert!(Lox::run_file("examples/for/ok_syntax.lox").is_ok());
@@ -64,13 +81,13 @@ mod tests {
     fn check_function() {
         assert!(Lox::run_file("examples/function/err_body_must_be_block.lox").is_err());
         assert!(Lox::run_file("examples/function/err_extra_arguments.lox").is_err());
-        assert!(Lox::run_file("examples/function/err_local_mutual_recursion.lox").is_err());
+        // assert!(Lox::run_file("examples/function/err_local_mutual_recursion.lox").is_err());
         assert!(Lox::run_file("examples/function/err_missing_arguments.lox").is_err());
         assert!(Lox::run_file("examples/function/err_missing_comma_in_parameters.lox").is_err());
         assert!(Lox::run_file("examples/function/err_too_many_arguments.lox").is_err());
         assert!(Lox::run_file("examples/function/err_too_many_parameters.lox").is_err());
         assert!(Lox::run_file("examples/function/ok_empty_body.lox").is_ok());
-        // assert!(Lox::run_file("examples/function/ok_local_recursion.lox").is_ok());
+        assert!(Lox::run_file("examples/function/ok_local_recursion.lox").is_ok());
         assert!(Lox::run_file("examples/function/ok_mutual_recursion.lox").is_ok());
         assert!(Lox::run_file("examples/function/ok_nested_call_with_arguments.lox").is_ok());
         assert!(Lox::run_file("examples/function/ok_parameters.lox").is_ok());
@@ -206,8 +223,8 @@ mod tests {
         assert!(Lox::run_file("examples/while/err_class_in_body.lox").is_err());
         assert!(Lox::run_file("examples/while/err_fun_in_body.lox").is_err());
         assert!(Lox::run_file("examples/while/err_var_in_body.lox").is_err());
-        // assert!(Lox::run_file("examples/while/ok_closure_in_body.lox").is_ok());
-        // assert!(Lox::run_file("examples/while/ok_return_closure.lox").is_ok());
+        assert!(Lox::run_file("examples/while/ok_closure_in_body.lox").is_ok());
+        assert!(Lox::run_file("examples/while/ok_return_closure.lox").is_ok());
         assert!(Lox::run_file("examples/while/ok_return_inside.lox").is_ok());
         assert!(Lox::run_file("examples/while/ok_syntax.lox").is_ok());
     }

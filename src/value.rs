@@ -1,4 +1,5 @@
-use crate::function::Function;
+use crate::function::LoxFunction;
+use crate::function::NativeFunction;
 use crate::literal::Literal;
 use std::fmt;
 
@@ -8,7 +9,8 @@ pub enum Value {
     Number(f64),
     String(String),
     Nil,
-    Function(Function),
+    LoxFunction(LoxFunction),
+    NativeFunction(NativeFunction),
 }
 
 impl From<Literal> for Value {
@@ -28,7 +30,8 @@ impl fmt::Display for Value {
             Self::Number(n) => write!(f, "{n}"),
             Self::String(s) => write!(f, "{s}"),
             Self::Nil => write!(f, "nil"),
-            Self::Function(fun) => write!(f, "{fun}"),
+            Self::LoxFunction(fun) => write!(f, "{fun}"),
+            Self::NativeFunction(fun) => write!(f, "{fun}"),
         }
     }
 }

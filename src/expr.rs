@@ -2,7 +2,7 @@ use crate::token::Token;
 use crate::value::Value;
 use std::fmt;
 
-#[derive(Clone, Debug, PartialEq, PartialOrd)]
+#[derive(Clone, Debug)]
 pub enum Expr {
     Assign(Token, Box<Expr>),
     Binary(Box<Expr>, Token, Box<Expr>),

@@ -1,7 +1,8 @@
 use crate::callable::Callable;
 use crate::environment::Environment;
 use crate::expr::Expr;
-use crate::function::Function;
+use crate::function::LoxFunction;
+use crate::function::NativeFunction;
 use crate::result::Error;
 use crate::result::Result;
 use crate::stmt::Stmt;
@@ -28,7 +29,7 @@ impl Interpreter {
         let globals = Rc::new(RefCell::new(environment));
 
         // Define a primitive function
-        fn clock(_interpreter: &mut Interpreter, _arguments: &[Value]) -> Result<Value> {
+        fn clock(_: &mut Interpreter, _: &[Value]) -> Result<Value> {
             use std::time::SystemTime;
             use std::time::UNIX_EPOCH;
 
@@ -36,10 +37,10 @@ impl Interpreter {
             let milliseconds = current_time.as_millis() as f64;
             Ok(Value::Number(milliseconds / 1000.0))
         }
-        let function = Function::new_primitive(clock, 0);
+        let function = NativeFunction::new(0, clock);
         globals
             .borrow_mut()
-            .define("clock", Value::Function(function))
+            .define("clock", Value::NativeFunction(function))
             .expect("Failed to define a primitive function.");
 
         Self {
@@ -137,7 +138,7 @@ impl Interpreter {
                 }
 
                 match callee {
-                    Value::Function(f) => {
+                    Value::LoxFunction(f) => {
                         if arguments.len() != f.arity() {
                             return Err(Error::Runtime(
                                 paren.clone(),
@@ -207,11 +208,11 @@ impl Interpreter {
             Stmt::Expression(expr) => {
                 self.evaluate(expr)?;
             }
-            Stmt::Function(name, _params, _body) => {
-                let function = Function::new(stmt);
+            Stmt::Function(name, params, body) => {
+                let function = LoxFunction::new(name, params, body, Rc::clone(&self.environment));
                 self.environment
                     .borrow_mut()
-                    .define(&name.lexeme, Value::Function(function))?;
+                    .define(&name.lexeme, Value::LoxFunction(function))?;
             }
             Stmt::If(condition, then_branch, else_branch) => {
                 if self.evaluate(condition)?.is_truthy() {

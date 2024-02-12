@@ -2,7 +2,7 @@ use crate::expr::Expr;
 use crate::token::Token;
 use std::fmt;
 
-#[derive(Clone, Debug, PartialEq, PartialOrd)]
+#[derive(Clone, Debug)]
 pub enum Stmt {
     Block(Vec<Stmt>),
     Expression(Box<Expr>),
