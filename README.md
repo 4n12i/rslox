@@ -2,17 +2,22 @@
 Rust implementation of an interpreter for the Lox programming language  
 
 ## Usage
-```
-# Run prompt
-$ cargo run 
+Run prompt: 
 
-# Run a lox file
-$ cargo run <file>
+```bash
+cargo run 
+```
+
+Run a lox file: 
+
+```bash
+cargo run  -- examples/hello.lox
 ```
 
 With debug log: 
-```
-$ RUST_LOG=debug cargo run
+
+```bash
+RUST_LOG=debug cargo run
 ```
 
 ## Implementation
