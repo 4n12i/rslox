@@ -255,7 +255,7 @@ mod tests {
     fn scan_tokens() {
         let src_addition = "1 + 2";
         let src_if_and_comment = "if (n1 + n2) <= 3 { // comment\n }";
-        
+
         assert_eq!(
             Scanner::new(src_addition).run().unwrap(),
             vec![
@@ -289,8 +289,8 @@ mod tests {
         let src_bang_equal = "!=";
         let src_whitespace = " ";
         let src_comment = "// comment\n";
-        let src_slash= "/";
-        let src_string= "\"string\"";
+        let src_slash = "/";
+        let src_string = "\"string\"";
         let src_string_with_newline = "\"string\nstring\"";
         let src_decimal = "2.024";
         let src_or = "or";

@@ -83,7 +83,7 @@ fn asserts(files: &[PathBuf]) -> Result<Vec<String>> {
         let assert = format!(
             "\t\tassert!(Lox::run_file(\"{}\"){});",
             f.strip_prefix("../../")?.to_string_lossy(),
-           suffix 
+            suffix
         );
 
         scripts.push(assert);
