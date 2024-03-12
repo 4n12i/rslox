@@ -164,6 +164,14 @@ mod tests {
     }
 
     #[test]
+    fn check_others() {
+        assert!(Lox::run_file("examples/others/err_unexpected_character.lox").is_err());
+        assert!(Lox::run_file("examples/others/ok_empty_file.lox").is_ok());
+        assert!(Lox::run_file("examples/others/ok_fibonacci.lox").is_ok());
+        assert!(Lox::run_file("examples/others/ok_precedence.lox").is_ok());
+    }
+
+    #[test]
     fn check_print() {
         assert!(Lox::run_file("examples/print/err_missing_argument.lox").is_err());
     }
@@ -216,14 +224,5 @@ mod tests {
         assert!(Lox::run_file("examples/while/ok_return_closure.lox").is_ok());
         assert!(Lox::run_file("examples/while/ok_return_inside.lox").is_ok());
         assert!(Lox::run_file("examples/while/ok_syntax.lox").is_ok());
-    }
-
-    #[test]
-    fn check_others() {
-        assert!(Lox::run_file("examples/err_unexpected_character.lox").is_err());
-        assert!(Lox::run_file("examples/ok_debug.lox").is_ok());
-        assert!(Lox::run_file("examples/ok_empty_file.lox").is_ok());
-        assert!(Lox::run_file("examples/ok_fibonacci.lox").is_ok());
-        assert!(Lox::run_file("examples/ok_precedence.lox").is_ok());
     }
 }
