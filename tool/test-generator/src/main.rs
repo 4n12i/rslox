@@ -18,7 +18,6 @@ fn main() -> Result<()> {
     .map(|s| s.to_string())
     .collect();
 
-    let mut other_files = Vec::new();
     let entries = get_entries(examples_path)?;
     for entry in entries {
         let s = path_to_string(&entry)?;
@@ -28,12 +27,9 @@ fn main() -> Result<()> {
         if entry.is_dir() {
             let files = get_entries(&entry)?;
             src.extend_from_slice(&method(&s, &files)?);
-        } else {
-            other_files.push(entry);
         }
     }
 
-    src.extend_from_slice(&method("others", &other_files)?);
     src.push("}".to_string());
 
     fs::write(tests_path, src.join("\n"))?;

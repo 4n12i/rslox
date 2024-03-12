@@ -1,5 +1,5 @@
 [package]
-name = "test_generator"
+name = "test-generator"
 version = "0.1.0"
 edition = "2021"
 
